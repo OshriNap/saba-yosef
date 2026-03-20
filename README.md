@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.png" alt="סבא יוסף" width="200">
+</p>
+
 # סבא יוסף — Saba Yosef | Dvar Torah Agent
 
 סוכן שבועי להכנת דבר תורה לשבת. מחבר בין אקטואליה ישראלית לפרשת השבוע דרך מפרשים — הכל בעברית.
