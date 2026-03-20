@@ -1,18 +1,26 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
+import { marked } from 'marked'
 import { api } from '../../lib/api'
 import { ChatSidebar } from './ChatSidebar'
 import { SourcePanel } from './SourcePanel'
 import type { DvarTora, WeeklyCollection } from '../../lib/types'
+
+function mdToHtml(text: string): string {
+  // If already HTML, return as-is
+  if (text.trim().startsWith('<')) return text
+  return marked.parse(text, { async: false }) as string
+}
 
 export function DvarToraEditor({ dvarTora: initial, collection, onBack }: {
   dvarTora: DvarTora
   collection: WeeklyCollection
   onBack: () => void
 }) {
-  const [dvarTora, setDvarTora] = useState(initial)
+  const initialHtml = useMemo(() => mdToHtml(initial.content), [initial.content])
+  const [dvarTora, setDvarTora] = useState({ ...initial, content: initialHtml })
   const [saving, setSaving] = useState(false)
   const sessionId = `week-${collection.id}`
 
@@ -21,7 +29,7 @@ export function DvarToraEditor({ dvarTora: initial, collection, onBack }: {
       StarterKit,
       TextAlign.configure({ types: ['heading', 'paragraph'], defaultAlignment: 'right' }),
     ],
-    content: dvarTora.content,
+    content: initialHtml,
     editorProps: {
       attributes: { class: 'prose prose-lg max-w-none p-6 min-h-[400px] focus:outline-none font-serif', dir: 'rtl' },
     },
@@ -32,8 +40,9 @@ export function DvarToraEditor({ dvarTora: initial, collection, onBack }: {
 
   const handleChatUpdate = useCallback((newText: string) => {
     if (editor) {
-      editor.commands.setContent(newText)
-      setDvarTora((prev) => ({ ...prev, content: newText }))
+      const html = mdToHtml(newText)
+      editor.commands.setContent(html)
+      setDvarTora((prev) => ({ ...prev, content: html }))
     }
   }, [editor])
 
