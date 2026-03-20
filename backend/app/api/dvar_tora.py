@@ -122,8 +122,11 @@ async def stream_suggestions(collection_id: int, session: Session = Depends(get_
             news_items=collection.news_items,
             mefarshim_texts=collection.mefarshim_texts,
         ):
-            full_text += chunk
-            yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
+            if chunk == "":
+                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+            else:
+                full_text += chunk
+                yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
 
         # Parse final result and save suggestions
         try:
@@ -171,8 +174,11 @@ async def stream_expand(suggestion_id: int, session: Session = Depends(get_sessi
             sources=suggestion.sources,
             parasha_text=collection.parasha_text,
         ):
-            full_text += chunk
-            yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
+            if chunk == "":
+                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+            else:
+                full_text += chunk
+                yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
 
         dvar = DvarTora(
             collection_id=collection.id,

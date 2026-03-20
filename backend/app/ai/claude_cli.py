@@ -30,9 +30,26 @@ class ClaudeCLI:
         return stdout.decode()
 
     async def _stream_claude(self, prompt: str, session_id: str | None = None) -> AsyncGenerator[str, None]:
-        """Simulate streaming by sending the full response in small chunks with delays."""
-        text = await self._run_claude(prompt, session_id)
-        # Send in word-sized chunks for typewriter effect
+        """Run Claude CLI and yield heartbeats while waiting, then typewriter the result."""
+        cmd = self._build_cmd(prompt, session_id)
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        # Send heartbeats while waiting
+        while True:
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=3)
+                break  # Process finished
+            except asyncio.TimeoutError:
+                yield ""  # Empty heartbeat to keep SSE alive
+        stdout = await proc.stdout.read()
+        text = stdout.decode()
+        if proc.returncode != 0:
+            stderr = await proc.stderr.read()
+            raise RuntimeError(f"Claude CLI failed: {stderr.decode()}")
+        # Typewriter effect
         words = text.split(' ')
         for i, word in enumerate(words):
             yield word + (' ' if i < len(words) - 1 else '')

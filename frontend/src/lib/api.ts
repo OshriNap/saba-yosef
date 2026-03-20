@@ -39,23 +39,25 @@ export const api = {
   getPdfUrl: (dvarId: number, layout: string = 'expanded') =>
     `${BASE}/pdf/${dvarId}?layout=${layout}`,
 
-  streamSuggestions: (collectionId: number, onChunk: (text: string) => void, onDone: (suggestions: DvarToraSuggestion[]) => void) => {
+  streamSuggestions: (collectionId: number, onChunk: (text: string) => void, onDone: (suggestions: DvarToraSuggestion[]) => void, onHeartbeat?: () => void) => {
     const es = new EventSource(`${BASE}/dvar-tora/suggestions/${collectionId}/stream`)
     es.onmessage = (e) => {
       const data = JSON.parse(e.data)
       if (data.type === 'chunk') onChunk(data.text)
-      if (data.type === 'done') { onDone(data.suggestions); es.close() }
+      else if (data.type === 'heartbeat') onHeartbeat?.()
+      else if (data.type === 'done') { onDone(data.suggestions); es.close() }
     }
     es.onerror = () => { es.close() }
     return es
   },
 
-  streamExpand: (suggestionId: number, onChunk: (text: string) => void, onDone: (dvar: DvarTora) => void) => {
+  streamExpand: (suggestionId: number, onChunk: (text: string) => void, onDone: (dvar: DvarTora) => void, onHeartbeat?: () => void) => {
     const es = new EventSource(`${BASE}/dvar-tora/expand/${suggestionId}/stream`)
     es.onmessage = (e) => {
       const data = JSON.parse(e.data)
       if (data.type === 'chunk') onChunk(data.text)
-      if (data.type === 'done') { onDone(data.dvar_tora); es.close() }
+      else if (data.type === 'heartbeat') onHeartbeat?.()
+      else if (data.type === 'done') { onDone(data.dvar_tora); es.close() }
     }
     es.onerror = () => { es.close() }
     return es

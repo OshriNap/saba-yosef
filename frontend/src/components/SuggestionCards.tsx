@@ -11,8 +11,10 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
   const [suggestions, setSuggestions] = useState<DvarToraSuggestion[]>([])
   const [loading, setLoading] = useState(false)
   const [streamText, setStreamText] = useState('')
+  const [thinking, setThinking] = useState(false)
   const [expanding, setExpanding] = useState<number | null>(null)
   const [expandText, setExpandText] = useState('')
+  const [expandThinking, setExpandThinking] = useState(false)
   const [category, setCategory] = useState<MefarshimCategory>('pshat')
   const streamRef = useRef<HTMLDivElement>(null)
   const expandRef = useRef<HTMLDivElement>(null)
@@ -25,11 +27,13 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
 
   const handleGenerate = () => {
     setLoading(true)
+    setThinking(true)
     setStreamText('')
     setSuggestions([])
     api.streamSuggestions(
       collection.id,
       (chunk) => {
+        setThinking(false)
         setStreamText(prev => prev + chunk)
         if (streamRef.current) {
           streamRef.current.scrollTop = streamRef.current.scrollHeight
@@ -38,17 +42,21 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
       (result) => {
         setSuggestions(result)
         setLoading(false)
+        setThinking(false)
         setStreamText('')
       },
+      () => { /* heartbeat — just keeps connection alive */ },
     )
   }
 
   const handleSelect = (suggestion: DvarToraSuggestion) => {
     setExpanding(suggestion.id)
+    setExpandThinking(true)
     setExpandText('')
     api.streamExpand(
       suggestion.id,
       (chunk) => {
+        setExpandThinking(false)
         setExpandText(prev => prev + chunk)
         if (expandRef.current) {
           expandRef.current.scrollTop = expandRef.current.scrollHeight
@@ -56,9 +64,11 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
       },
       (dvar) => {
         setExpanding(null)
+        setExpandThinking(false)
         setExpandText('')
         onSelect(dvar)
       },
+      () => { /* heartbeat */ },
     )
   }
 
@@ -84,15 +94,25 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
         <div className="mt-6">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-            <span className="text-amber-700 font-medium">Claude כותב...</span>
+            <span className="text-amber-700 font-medium">
+              {thinking ? 'Claude חושב... (זה לוקח דקה-שתיים)' : 'Claude כותב...'}
+            </span>
           </div>
           <div
             ref={streamRef}
             dir="rtl"
             className="bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-lg max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed"
           >
-            {streamText || 'מתחיל...'}
-            <span className="animate-pulse">▊</span>
+            {thinking ? (
+              <div className="flex items-center gap-1">
+                <span className="animate-bounce" style={{ animationDelay: '0ms' }}>●</span>
+                <span className="animate-bounce" style={{ animationDelay: '150ms' }}>●</span>
+                <span className="animate-bounce" style={{ animationDelay: '300ms' }}>●</span>
+                <span className="mr-3 text-green-600">מעבד פרשה, מפרשים וחדשות...</span>
+              </div>
+            ) : (
+              <>{streamText}<span className="animate-pulse">▊</span></>
+            )}
           </div>
         </div>
       )}
@@ -103,15 +123,24 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
           <div className="bg-gray-900 rounded-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
             <div className="flex items-center gap-2 p-4 border-b border-gray-700">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-green-400 font-medium">כותב דבר תורה מלא...</span>
+              <span className="text-green-400 font-medium">
+                {expandThinking ? 'Claude חושב... (זה לוקח דקה-שתיים)' : 'כותב דבר תורה מלא...'}
+              </span>
             </div>
             <div
               ref={expandRef}
               dir="rtl"
               className="text-green-400 font-mono text-sm p-4 overflow-y-auto flex-1 whitespace-pre-wrap leading-relaxed"
             >
-              {expandText || 'מתחיל...'}
-              <span className="animate-pulse">▊</span>
+              {expandThinking ? (
+                <div className="flex items-center gap-1 justify-center py-20">
+                  <span className="animate-bounce text-2xl" style={{ animationDelay: '0ms' }}>●</span>
+                  <span className="animate-bounce text-2xl" style={{ animationDelay: '150ms' }}>●</span>
+                  <span className="animate-bounce text-2xl" style={{ animationDelay: '300ms' }}>●</span>
+                </div>
+              ) : (
+                <>{expandText}<span className="animate-pulse">▊</span></>
+              )}
             </div>
           </div>
         </div>
