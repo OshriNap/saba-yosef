@@ -46,17 +46,24 @@ class NewsCollector:
         return unique
 
     async def collect(self) -> list[dict]:
-        all_items = []
+        per_source: dict[str, list[dict]] = {}
         for source, url in RSS_FEEDS.items():
             try:
                 xml = await self._fetch_feed(url)
                 items = self._parse_rss(xml)
                 for item in items:
                     item["source"] = source
-                all_items.extend(items)
+                per_source[source] = items
             except Exception:
                 continue
-        return self._deduplicate(all_items)[:20]
+        # Round-robin across sources for variety
+        merged = []
+        max_len = max((len(v) for v in per_source.values()), default=0)
+        for i in range(max_len):
+            for source, items in per_source.items():
+                if i < len(items):
+                    merged.append(items[i])
+        return self._deduplicate(merged)[:20]
 
     async def close(self):
         await self.client.aclose()
