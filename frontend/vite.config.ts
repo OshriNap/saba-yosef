@@ -3,11 +3,15 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
+  base: '/dvar-tora/',
   plugins: [react(), tailwindcss()],
   server: {
     allowedHosts: ['code-agents-server.local'],
     proxy: {
-      '/api': 'http://localhost:8000',
+      '/dvar-tora/api': {
+        target: 'http://localhost:8085',
+        rewrite: (path) => path.replace(/^\/dvar-tora/, ''),
+      },
     },
   },
 })
