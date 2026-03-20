@@ -1,6 +1,6 @@
 import type { WeeklyCollection, DvarToraSuggestion, DvarTora } from './types'
 
-const BASE = '/api'
+const BASE = import.meta.env.BASE_URL + 'api'
 
 async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   const resp = await fetch(`${BASE}${url}`, {
