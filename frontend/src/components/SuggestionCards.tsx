@@ -26,6 +26,7 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
   const handleGenerate = () => {
     setLoading(true)
     setStreamText('')
+    setSuggestions([])
     api.streamSuggestions(
       collection.id,
       (chunk) => {
@@ -90,14 +91,14 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
             dir="rtl"
             className="bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-lg max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed"
           >
-            {streamText || '...'}
+            {streamText || 'מתחיל...'}
             <span className="animate-pulse">▊</span>
           </div>
         </div>
       )}
 
-      {/* Streaming text for expand */}
-      {expanding !== null && expandText && (
+      {/* Streaming modal for expand */}
+      {expanding !== null && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-8">
           <div className="bg-gray-900 rounded-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
             <div className="flex items-center gap-2 p-4 border-b border-gray-700">
@@ -109,7 +110,7 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
               dir="rtl"
               className="text-green-400 font-mono text-sm p-4 overflow-y-auto flex-1 whitespace-pre-wrap leading-relaxed"
             >
-              {expandText}
+              {expandText || 'מתחיל...'}
               <span className="animate-pulse">▊</span>
             </div>
           </div>
@@ -143,10 +144,10 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
         ))}
       </div>
 
-      {suggestions.length > 0 && (
+      {suggestions.length > 0 && !loading && (
         <div className="text-center mt-6">
-          <button onClick={handleGenerate} disabled={loading} className="text-blue-600 hover:underline">
-            {loading ? 'מייצר...' : 'צור הצעות נוספות'}
+          <button onClick={handleGenerate} className="text-blue-600 hover:underline">
+            נקה וצור הצעות חדשות
           </button>
         </div>
       )}

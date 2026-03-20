@@ -30,19 +30,13 @@ class ClaudeCLI:
         return stdout.decode()
 
     async def _stream_claude(self, prompt: str, session_id: str | None = None) -> AsyncGenerator[str, None]:
-        """Stream Claude CLI output chunk by chunk."""
-        cmd = self._build_cmd(prompt, session_id)
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        while True:
-            chunk = await proc.stdout.read(64)
-            if not chunk:
-                break
-            yield chunk.decode()
-        await proc.wait()
+        """Simulate streaming by sending the full response in small chunks with delays."""
+        text = await self._run_claude(prompt, session_id)
+        # Send in word-sized chunks for typewriter effect
+        words = text.split(' ')
+        for i, word in enumerate(words):
+            yield word + (' ' if i < len(words) - 1 else '')
+            await asyncio.sleep(0.02)
 
     def _build_suggestion_prompt(
         self,
