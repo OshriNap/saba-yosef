@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { ConnectionDashboard } from './components/ConnectionDashboard'
+import { StylePicker, type StylePrefs } from './components/StylePicker'
 import { SuggestionCards } from './components/SuggestionCards'
 import { DvarToraEditor } from './components/Editor/DvarToraEditor'
 import { Settings } from './components/Settings'
 import type { WeeklyCollection, DvarTora } from './lib/types'
 
-type View = 'dashboard' | 'suggestions' | 'editor'
+type View = 'dashboard' | 'style' | 'suggestions' | 'editor'
 
 export interface UserSelection {
   selectedNews: number[]
   selectedThemes: number[]
   customNews: string[]
   customThemes: string[]
+  style?: StylePrefs
 }
 
 export default function App() {
@@ -37,15 +39,24 @@ export default function App() {
         <ConnectionDashboard onProceed={(c, sn, st, cn, ct) => {
           setCollection(c)
           setSelection({ selectedNews: sn, selectedThemes: st, customNews: cn, customThemes: ct })
-          setView('suggestions')
+          setView('style')
         }} />
+      )}
+      {view === 'style' && collection && selection && (
+        <StylePicker
+          onConfirm={(style) => {
+            setSelection(prev => prev ? { ...prev, style } : null)
+            setView('suggestions')
+          }}
+          onBack={() => setView('dashboard')}
+        />
       )}
       {view === 'suggestions' && collection && selection && (
         <SuggestionCards
           collection={collection}
           selection={selection}
           onSelect={(dvar) => { setDvarTora(dvar); setView('editor') }}
-          onBack={() => setView('dashboard')}
+          onBack={() => setView('style')}
         />
       )}
       {view === 'editor' && dvarTora && collection && (

@@ -43,11 +43,18 @@ async def generate_suggestions(collection_id: int, session: Session = Depends(ge
         session.refresh(s)
     return result
 
+class StylePreferences(BaseModel):
+    tone: str = ""       # רציני/אקדמי, חם/אישי, הומוריסטי, מעורר השראה
+    audience: str = ""   # ילדים, נוער, קהל כללי, תלמידי חכמים
+    length: str = ""     # קצר (3 דק), בינוני (5-7 דק), ארוך (10+ דק)
+    approach: str = ""   # אנליטי, סיפורי, דרשני, שיחתי
+
 class SelectionContext(BaseModel):
     selected_news: list[int] = []
     selected_themes: list[int] = []
     custom_news: list[str] = []
     custom_themes: list[str] = []
+    style: StylePreferences | None = None
 
 @router.post("/suggestions/{collection_id}/generate-from-selection")
 async def generate_from_selection(collection_id: int, ctx: SelectionContext, session: Session = Depends(get_session)):
@@ -78,6 +85,7 @@ async def generate_from_selection(collection_id: int, ctx: SelectionContext, ses
         themes=focused_themes,
         connections=connections,
         mefarshim_texts=collection.mefarshim_texts,
+        style=ctx.style.model_dump() if ctx.style else None,
     )
 
     result = []
@@ -188,6 +196,7 @@ async def stream_from_selection(collection_id: int, ctx: SelectionContext, sessi
             themes=focused_themes,
             connections=connections,
             mefarshim_texts=collection.mefarshim_texts,
+            style=ctx.style.model_dump() if ctx.style else None,
         ):
             if chunk == "":
                 yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"

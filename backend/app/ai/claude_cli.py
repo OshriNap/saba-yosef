@@ -3,6 +3,7 @@ import json
 from typing import AsyncGenerator
 from app.ai.prompts import (
     SYSTEM_PROMPT,
+    NEWS_FILTER_PROMPT,
     SUGGESTION_PROMPT_TEMPLATE,
     FOCUSED_SUGGESTION_PROMPT_TEMPLATE,
     EXPAND_PROMPT_TEMPLATE,
@@ -56,6 +57,23 @@ class ClaudeCLI:
             yield word + (' ' if i < len(words) - 1 else '')
             await asyncio.sleep(0.02)
 
+    async def filter_news(self, news_items: list[dict]) -> list[dict]:
+        """Filter news items, keeping only those relevant for dvar tora."""
+        news_list = "\n".join(
+            f"{i}. {item['title']}: {item.get('summary', '')}"
+            for i, item in enumerate(news_items)
+        )
+        prompt = NEWS_FILTER_PROMPT.format(news_list=news_list)
+        raw = await self._run_claude(prompt)
+        try:
+            start = raw.index("{")
+            end = raw.rindex("}") + 1
+            data = json.loads(raw[start:end])
+            keep_indices = data.get("keep", [])
+            return [news_items[i] for i in keep_indices if i < len(news_items)]
+        except (ValueError, json.JSONDecodeError):
+            return news_items  # On error, keep all
+
     def _build_suggestion_prompt(
         self,
         parasha_name: str,
@@ -97,7 +115,7 @@ class ClaudeCLI:
         except (ValueError, json.JSONDecodeError):
             return [{"title": "שגיאה בפענוח", "thesis": raw[:200], "outline": "", "sources": [], "linked_news": []}]
 
-    async def generate_suggestions_focused(
+    def _build_focused_prompt(
         self,
         parasha_name: str,
         parasha_text: str,
@@ -105,7 +123,8 @@ class ClaudeCLI:
         themes: list[dict],
         connections: list[dict],
         mefarshim_texts: dict[str, list[dict]],
-    ) -> list[dict]:
+        style: dict | None = None,
+    ) -> str:
         news_section = "\n".join(
             f"- {item.get('title', '')}: {item.get('summary', '')}" for item in news_items
         ) or "לא נבחרו חדשות"
@@ -120,13 +139,37 @@ class ClaudeCLI:
             mefarshim_section += f"\n### {mefaresh}\n"
             for t in texts[:5]:
                 mefarshim_section += f"- {t.get('ref', '')}: {t.get('text', '')[:150]}\n"
-        prompt = FOCUSED_SUGGESTION_PROMPT_TEMPLATE.format(
+        style_section = "לא צוינו העדפות סגנון."
+        if style:
+            parts = []
+            if style.get("tone"): parts.append(f"טון: {style['tone']}")
+            if style.get("audience"): parts.append(f"קהל יעד: {style['audience']}")
+            if style.get("length"): parts.append(f"אורך: {style['length']}")
+            if style.get("approach"): parts.append(f"גישה: {style['approach']}")
+            if parts:
+                style_section = "\n".join(parts)
+        return FOCUSED_SUGGESTION_PROMPT_TEMPLATE.format(
             parasha_name=parasha_name,
             parasha_text=parasha_text[:2000],
             news_section=news_section,
             themes_section=themes_section,
             connections_section=connections_section,
             mefarshim_section=mefarshim_section,
+            style_section=style_section,
+        )
+
+    async def generate_suggestions_focused(
+        self,
+        parasha_name: str,
+        parasha_text: str,
+        news_items: list[dict],
+        themes: list[dict],
+        connections: list[dict],
+        mefarshim_texts: dict[str, list[dict]],
+        style: dict | None = None,
+    ) -> list[dict]:
+        prompt = self._build_focused_prompt(
+            parasha_name, parasha_text, news_items, themes, connections, mefarshim_texts, style,
         )
         raw = await self._run_claude(prompt)
         try:
@@ -145,28 +188,10 @@ class ClaudeCLI:
         themes: list[dict],
         connections: list[dict],
         mefarshim_texts: dict[str, list[dict]],
+        style: dict | None = None,
     ) -> AsyncGenerator[str, None]:
-        news_section = "\n".join(
-            f"- {item.get('title', '')}: {item.get('summary', '')}" for item in news_items
-        ) or "לא נבחרו חדשות"
-        themes_section = "\n".join(
-            f"- {t.get('title', '')}: {t.get('description', '')}" for t in themes
-        ) or "לא נבחרו נושאי פרשה"
-        connections_section = "\n".join(
-            f"- {c.get('reason', '')}" for c in connections
-        ) or "אין קשרים מזוהים"
-        mefarshim_section = ""
-        for mefaresh, texts in mefarshim_texts.items():
-            mefarshim_section += f"\n### {mefaresh}\n"
-            for t in texts[:5]:
-                mefarshim_section += f"- {t.get('ref', '')}: {t.get('text', '')[:150]}\n"
-        prompt = FOCUSED_SUGGESTION_PROMPT_TEMPLATE.format(
-            parasha_name=parasha_name,
-            parasha_text=parasha_text[:2000],
-            news_section=news_section,
-            themes_section=themes_section,
-            connections_section=connections_section,
-            mefarshim_section=mefarshim_section,
+        prompt = self._build_focused_prompt(
+            parasha_name, parasha_text, news_items, themes, connections, mefarshim_texts, style,
         )
         async for chunk in self._stream_claude(prompt):
             yield chunk

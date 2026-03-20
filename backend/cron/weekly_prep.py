@@ -54,8 +54,15 @@ async def run_weekly_prep():
 
         parasha_text_str = "\n".join(t["text"] for t in parasha_text)
 
-        # Generate themes and connections via Claude
+        # Filter news for Torah relevance
         claude = ClaudeCLI()
+        try:
+            news = await claude.filter_news(news)
+            print(f"Filtered to {len(news)} relevant news items")
+        except Exception as e:
+            print(f"News filter failed, keeping all: {e}")
+
+        # Generate themes and connections via Claude
         try:
             theme_data = await claude.generate_themes_and_connections(
                 parasha_name=parasha["name"],
