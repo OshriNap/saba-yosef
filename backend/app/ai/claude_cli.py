@@ -105,7 +105,6 @@ class ClaudeCLI:
         outline: str,
         sources: list[dict],
         parasha_text: str,
-        session_id: str,
     ) -> AsyncGenerator[str, None]:
         sources_section = "\n".join(
             f"- {s.get('mefaresh', '')}: {s.get('ref', '')}" for s in sources
@@ -117,7 +116,7 @@ class ClaudeCLI:
             sources_section=sources_section,
             parasha_text=parasha_text[:2000],
         )
-        async for chunk in self._stream_claude(prompt, session_id=session_id):
+        async for chunk in self._stream_claude(prompt):
             yield chunk
 
     async def expand_suggestion(

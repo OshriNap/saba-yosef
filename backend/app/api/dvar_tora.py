@@ -161,7 +161,6 @@ async def stream_expand(suggestion_id: int, session: Session = Depends(get_sessi
     if not suggestion:
         raise HTTPException(status_code=404, detail="Suggestion not found")
     collection = session.get(WeeklyCollection, suggestion.collection_id)
-    session_id = f"week-{collection.id}"
 
     async def generate():
         full_text = ""
@@ -171,7 +170,6 @@ async def stream_expand(suggestion_id: int, session: Session = Depends(get_sessi
             outline=suggestion.outline,
             sources=suggestion.sources,
             parasha_text=collection.parasha_text,
-            session_id=session_id,
         ):
             full_text += chunk
             yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
@@ -197,14 +195,13 @@ async def expand_suggestion(suggestion_id: int, session: Session = Depends(get_s
     if not suggestion:
         raise HTTPException(status_code=404, detail="Suggestion not found")
     collection = session.get(WeeklyCollection, suggestion.collection_id)
-    session_id = f"week-{collection.id}"
     text = await claude.expand_suggestion(
         title=suggestion.title,
         thesis=suggestion.thesis,
         outline=suggestion.outline,
         sources=suggestion.sources,
         parasha_text=collection.parasha_text,
-        session_id=session_id,
+        session_id=None,
     )
     dvar = DvarTora(
         collection_id=collection.id,
