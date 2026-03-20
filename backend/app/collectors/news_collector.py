@@ -5,9 +5,10 @@ from bs4 import BeautifulSoup
 RSS_FEEDS = {
     "ynet": "https://www.ynet.co.il/Integration/StoryRss2.xml",
     "walla": "https://rss.walla.co.il/feed/1",
-    "haaretz": "https://www.haaretz.co.il/cmlink/1.1617539",
-    "kan": "https://www.kan.org.il/lobby/kan-news/0/rss",
     "google_news_il": "https://news.google.com/rss?hl=iw&gl=IL&ceid=IL:he",
+    "maariv": "https://www.maariv.co.il/Rss/RssChad498",
+    "globes": "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederNode?iID=585",
+    "israel_hayom": "https://www.israelhayom.co.il/rss.xml",
 }
 
 class NewsCollector:
