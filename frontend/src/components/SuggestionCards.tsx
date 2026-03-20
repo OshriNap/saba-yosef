@@ -2,9 +2,11 @@ import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/api'
 import { MefarshimPicker } from './MefarshimPicker'
 import type { WeeklyCollection, DvarTora, DvarToraSuggestion, MefarshimCategory } from '../lib/types'
+import type { UserSelection } from '../App'
 
-export function SuggestionCards({ collection, onSelect, onBack }: {
+export function SuggestionCards({ collection, selection, onSelect, onBack }: {
   collection: WeeklyCollection
+  selection: UserSelection
   onSelect: (dvar: DvarTora) => void
   onBack: () => void
 }) {
@@ -30,8 +32,14 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
     setThinking(true)
     setStreamText('')
     setSuggestions([])
-    api.streamSuggestions(
+    api.streamSuggestionsFocused(
       collection.id,
+      {
+        selectedNews: selection.selectedNews,
+        selectedThemes: selection.selectedThemes,
+        customNews: selection.customNews,
+        customThemes: selection.customThemes,
+      },
       (chunk) => {
         setThinking(false)
         setStreamText(prev => prev + chunk)
@@ -45,7 +53,7 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
         setThinking(false)
         setStreamText('')
       },
-      () => { /* heartbeat — just keeps connection alive */ },
+      () => { /* heartbeat */ },
     )
   }
 

@@ -4,6 +4,7 @@ from typing import AsyncGenerator
 from app.ai.prompts import (
     SYSTEM_PROMPT,
     SUGGESTION_PROMPT_TEMPLATE,
+    FOCUSED_SUGGESTION_PROMPT_TEMPLATE,
     EXPAND_PROMPT_TEMPLATE,
     CHAT_PROMPT_TEMPLATE,
     THEMES_PROMPT_TEMPLATE,
@@ -95,6 +96,80 @@ class ClaudeCLI:
             return data.get("suggestions", [])
         except (ValueError, json.JSONDecodeError):
             return [{"title": "שגיאה בפענוח", "thesis": raw[:200], "outline": "", "sources": [], "linked_news": []}]
+
+    async def generate_suggestions_focused(
+        self,
+        parasha_name: str,
+        parasha_text: str,
+        news_items: list[dict],
+        themes: list[dict],
+        connections: list[dict],
+        mefarshim_texts: dict[str, list[dict]],
+    ) -> list[dict]:
+        news_section = "\n".join(
+            f"- {item.get('title', '')}: {item.get('summary', '')}" for item in news_items
+        ) or "לא נבחרו חדשות"
+        themes_section = "\n".join(
+            f"- {t.get('title', '')}: {t.get('description', '')}" for t in themes
+        ) or "לא נבחרו נושאי פרשה"
+        connections_section = "\n".join(
+            f"- {c.get('reason', '')}" for c in connections
+        ) or "אין קשרים מזוהים"
+        mefarshim_section = ""
+        for mefaresh, texts in mefarshim_texts.items():
+            mefarshim_section += f"\n### {mefaresh}\n"
+            for t in texts[:5]:
+                mefarshim_section += f"- {t.get('ref', '')}: {t.get('text', '')[:150]}\n"
+        prompt = FOCUSED_SUGGESTION_PROMPT_TEMPLATE.format(
+            parasha_name=parasha_name,
+            parasha_text=parasha_text[:2000],
+            news_section=news_section,
+            themes_section=themes_section,
+            connections_section=connections_section,
+            mefarshim_section=mefarshim_section,
+        )
+        raw = await self._run_claude(prompt)
+        try:
+            start = raw.index("{")
+            end = raw.rindex("}") + 1
+            data = json.loads(raw[start:end])
+            return data.get("suggestions", [])
+        except (ValueError, json.JSONDecodeError):
+            return [{"title": "שגיאה בפענוח", "thesis": raw[:200], "outline": "", "sources": [], "linked_news": []}]
+
+    async def stream_suggestions_focused(
+        self,
+        parasha_name: str,
+        parasha_text: str,
+        news_items: list[dict],
+        themes: list[dict],
+        connections: list[dict],
+        mefarshim_texts: dict[str, list[dict]],
+    ) -> AsyncGenerator[str, None]:
+        news_section = "\n".join(
+            f"- {item.get('title', '')}: {item.get('summary', '')}" for item in news_items
+        ) or "לא נבחרו חדשות"
+        themes_section = "\n".join(
+            f"- {t.get('title', '')}: {t.get('description', '')}" for t in themes
+        ) or "לא נבחרו נושאי פרשה"
+        connections_section = "\n".join(
+            f"- {c.get('reason', '')}" for c in connections
+        ) or "אין קשרים מזוהים"
+        mefarshim_section = ""
+        for mefaresh, texts in mefarshim_texts.items():
+            mefarshim_section += f"\n### {mefaresh}\n"
+            for t in texts[:5]:
+                mefarshim_section += f"- {t.get('ref', '')}: {t.get('text', '')[:150]}\n"
+        prompt = FOCUSED_SUGGESTION_PROMPT_TEMPLATE.format(
+            parasha_name=parasha_name,
+            parasha_text=parasha_text[:2000],
+            news_section=news_section,
+            themes_section=themes_section,
+            connections_section=connections_section,
+            mefarshim_section=mefarshim_section,
+        )
+        async for chunk in self._stream_claude(prompt):
+            yield chunk
 
     async def stream_suggestions(
         self,

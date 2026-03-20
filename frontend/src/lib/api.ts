@@ -51,6 +51,42 @@ export const api = {
     return es
   },
 
+  streamSuggestionsFocused: async (
+    collectionId: number,
+    selection: { selectedNews: number[]; selectedThemes: number[]; customNews: string[]; customThemes: string[] },
+    onChunk: (text: string) => void,
+    onDone: (suggestions: DvarToraSuggestion[]) => void,
+    onHeartbeat?: () => void,
+  ) => {
+    const resp = await fetch(`${BASE}/dvar-tora/suggestions/${collectionId}/stream-from-selection`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        selected_news: selection.selectedNews,
+        selected_themes: selection.selectedThemes,
+        custom_news: selection.customNews,
+        custom_themes: selection.customThemes,
+      }),
+    })
+    const reader = resp.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const data = JSON.parse(line.slice(6))
+        if (data.type === 'chunk') onChunk(data.text)
+        else if (data.type === 'heartbeat') onHeartbeat?.()
+        else if (data.type === 'done') onDone(data.suggestions)
+      }
+    }
+  },
+
   streamExpand: (suggestionId: number, onChunk: (text: string) => void, onDone: (dvar: DvarTora) => void, onHeartbeat?: () => void) => {
     const es = new EventSource(`${BASE}/dvar-tora/expand/${suggestionId}/stream`)
     es.onmessage = (e) => {

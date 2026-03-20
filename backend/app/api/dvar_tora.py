@@ -43,6 +43,60 @@ async def generate_suggestions(collection_id: int, session: Session = Depends(ge
         session.refresh(s)
     return result
 
+class SelectionContext(BaseModel):
+    selected_news: list[int] = []
+    selected_themes: list[int] = []
+    custom_news: list[str] = []
+    custom_themes: list[str] = []
+
+@router.post("/suggestions/{collection_id}/generate-from-selection")
+async def generate_from_selection(collection_id: int, ctx: SelectionContext, session: Session = Depends(get_session)):
+    collection = session.get(WeeklyCollection, collection_id)
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    # Filter news and themes to user's selection
+    all_news = collection.news_items or []
+    all_themes = collection.parasha_themes or []
+
+    focused_news = [all_news[i] for i in ctx.selected_news if i < len(all_news)]
+    focused_news.extend([{"title": t, "summary": t} for t in ctx.custom_news])
+
+    focused_themes = [all_themes[i] for i in ctx.selected_themes if i < len(all_themes)]
+    focused_themes.extend([{"title": t, "description": t} for t in ctx.custom_themes])
+
+    # Get relevant connections
+    connections = [
+        c for c in (collection.connections or [])
+        if c["news_index"] in ctx.selected_news or c["theme_index"] in ctx.selected_themes
+    ]
+
+    suggestions = await claude.generate_suggestions_focused(
+        parasha_name=collection.parasha_name,
+        parasha_text=collection.parasha_text,
+        news_items=focused_news,
+        themes=focused_themes,
+        connections=connections,
+        mefarshim_texts=collection.mefarshim_texts,
+    )
+
+    result = []
+    for s in suggestions:
+        suggestion = DvarToraSuggestion(
+            collection_id=collection_id,
+            title=s.get("title", ""),
+            thesis=s.get("thesis", ""),
+            outline=s.get("outline", ""),
+            sources=s.get("sources", []),
+            linked_news_themes=s.get("linked_news", []),
+        )
+        session.add(suggestion)
+        result.append(suggestion)
+    session.commit()
+    for s in result:
+        session.refresh(s)
+    return result
+
 class DvarToraCreate(BaseModel):
     collection_id: int
     suggestion_id: int | None = None
@@ -107,6 +161,68 @@ async def chat_edit(data: ChatRequest):
         session_id=data.session_id,
     )
     return {"updated_text": result}
+
+@router.post("/suggestions/{collection_id}/stream-from-selection")
+async def stream_from_selection(collection_id: int, ctx: SelectionContext, session: Session = Depends(get_session)):
+    collection = session.get(WeeklyCollection, collection_id)
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    all_news = collection.news_items or []
+    all_themes = collection.parasha_themes or []
+    focused_news = [all_news[i] for i in ctx.selected_news if i < len(all_news)]
+    focused_news.extend([{"title": t, "summary": t} for t in ctx.custom_news])
+    focused_themes = [all_themes[i] for i in ctx.selected_themes if i < len(all_themes)]
+    focused_themes.extend([{"title": t, "description": t} for t in ctx.custom_themes])
+    connections = [
+        c for c in (collection.connections or [])
+        if c["news_index"] in ctx.selected_news or c["theme_index"] in ctx.selected_themes
+    ]
+
+    async def generate():
+        full_text = ""
+        async for chunk in claude.stream_suggestions_focused(
+            parasha_name=collection.parasha_name,
+            parasha_text=collection.parasha_text,
+            news_items=focused_news,
+            themes=focused_themes,
+            connections=connections,
+            mefarshim_texts=collection.mefarshim_texts,
+        ):
+            if chunk == "":
+                yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+            else:
+                full_text += chunk
+                yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
+
+        try:
+            start = full_text.index("{")
+            end = full_text.rindex("}") + 1
+            data = json.loads(full_text[start:end])
+            suggestions = data.get("suggestions", [])
+        except (ValueError, json.JSONDecodeError):
+            suggestions = [{"title": "שגיאה בפענוח", "thesis": full_text[:200], "outline": "", "sources": [], "linked_news": []}]
+
+        saved = []
+        for s in suggestions:
+            suggestion = DvarToraSuggestion(
+                collection_id=collection_id,
+                title=s.get("title", ""),
+                thesis=s.get("thesis", ""),
+                outline=s.get("outline", ""),
+                sources=s.get("sources", []),
+                linked_news_themes=s.get("linked_news", []),
+            )
+            session.add(suggestion)
+            saved.append(suggestion)
+        session.commit()
+        for s in saved:
+            session.refresh(s)
+
+        result = [{"id": s.id, "collection_id": s.collection_id, "title": s.title, "thesis": s.thesis, "outline": s.outline, "sources": s.sources, "linked_news_themes": s.linked_news_themes} for s in saved]
+        yield f"data: {json.dumps({'type': 'done', 'suggestions': result})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 @router.get("/suggestions/{collection_id}/stream")
 async def stream_suggestions(collection_id: int, session: Session = Depends(get_session)):
