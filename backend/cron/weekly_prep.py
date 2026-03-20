@@ -46,6 +46,12 @@ async def run_weekly_prep():
         mefarshim = await pc.collect_mefarshim(parasha["ref"], mefarshim_list)
         news = await nc.collect()
 
+        # Get upcoming Jewish events
+        try:
+            jewish_events = await pc.get_upcoming_events()
+        except Exception:
+            jewish_events = parasha.get("jewish_events", [])
+
         parasha_text_str = "\n".join(t["text"] for t in parasha_text)
 
         # Generate themes and connections via Claude
@@ -56,6 +62,7 @@ async def run_weekly_prep():
                 parasha_text=parasha_text_str,
                 news_items=news,
                 mefarshim_texts=mefarshim,
+                jewish_events=jewish_events,
             )
         except Exception as e:
             print(f"Theme generation failed: {e}")
@@ -72,6 +79,7 @@ async def run_weekly_prep():
                 news_items=news,
                 mefarshim_texts=mefarshim,
                 parasha_text=parasha_text_str,
+                jewish_events=jewish_events,
                 parasha_themes=theme_data["themes"],
                 connections=theme_data["connections"],
             )

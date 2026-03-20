@@ -1,2 +1,3 @@
 {"type":"server-started","port":58421,"host":"0.0.0.0","url_host":"192.168.50.114","url":"http://192.168.50.114:58421","screen_dir":"/home/oshrin/projects/dvar-tora/.superpowers/brainstorm/193806-1773999038"}
 {"type":"screen-added","file":"/home/oshrin/projects/dvar-tora/.superpowers/brainstorm/193806-1773999038/dashboard-mockup.html"}
+{"type":"server-stopped","reason":"idle timeout"}

@@ -52,23 +52,67 @@ class ParashaCollector:
         return resp.json()
 
     async def get_weekly_parasha(self) -> dict:
-        next_saturday = date.today() + timedelta(days=(5 - date.today().weekday()) % 7 + 1)
         params = {
             "cfg": "json",
             "geonameid": "293397",
             "M": "on",
         }
         data = await self._fetch_hebcal(params)
+        parasha = None
+        jewish_events = []
         for item in data.get("items", []):
-            if item.get("category") == "parashat":
-                return {
+            if item.get("category") == "parashat" and not parasha:
+                parasha = {
                     "name": item.get("hebrew", item["title"]),
                     "name_en": item["title"],
                     "ref": item.get("leyning", {}).get("torah", ""),
                     "date": item.get("date", ""),
                     "hebrew_date": item.get("hdate", ""),
                 }
-        raise ValueError("No parasha found for this week")
+            elif item.get("category") in ("holiday", "roshchodesh", "minor"):
+                jewish_events.append({
+                    "title": item.get("hebrew", item.get("title", "")),
+                    "category": item.get("category", ""),
+                    "date": item.get("date", ""),
+                })
+        if not parasha:
+            raise ValueError("No parasha found for this week")
+        parasha["jewish_events"] = jewish_events
+        return parasha
+
+    async def get_upcoming_events(self) -> list[dict]:
+        """Get Jewish holidays and special dates for the next 30 days."""
+        today = date.today()
+        end = today + timedelta(days=30)
+        params = {
+            "cfg": "json",
+            "geonameid": "293397",
+            "M": "on",
+            "start": today.isoformat(),
+            "end": end.isoformat(),
+            "maj": "on",
+            "min": "on",
+            "mod": "on",
+            "nx": "on",
+            "ss": "on",
+            "mf": "on",
+        }
+        url = "https://www.hebcal.com/hebcal"
+        resp = await self.client.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+        events = []
+        for item in data.get("items", []):
+            cat = item.get("category", "")
+            if cat in ("holiday", "roshchodesh", "minor", "modern", "fast"):
+                events.append({
+                    "title": item.get("hebrew", item.get("title", "")),
+                    "title_en": item.get("title", ""),
+                    "category": cat,
+                    "date": item.get("date", ""),
+                    "memo": item.get("memo", ""),
+                })
+        return events
 
     async def get_parasha_text(self, ref: str) -> list[dict]:
         data = await self._fetch_sefaria(ref, {"context": "0", "pad": "0"})

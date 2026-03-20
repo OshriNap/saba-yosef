@@ -16,6 +16,7 @@ class WeeklyCollection(SQLModel, table=True):
     news_items: list[dict] = Field(default=[], sa_column=Column(JSON))
     mefarshim_texts: dict = Field(default={}, sa_column=Column(JSON))
     parasha_text: str = ""
+    jewish_events: list[dict] = Field(default=[], sa_column=Column(JSON))
     parasha_themes: list[dict] = Field(default=[], sa_column=Column(JSON))
     connections: list[dict] = Field(default=[], sa_column=Column(JSON))
 

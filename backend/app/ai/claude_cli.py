@@ -92,6 +92,7 @@ class ClaudeCLI:
         parasha_text: str,
         news_items: list[dict],
         mefarshim_texts: dict[str, list[dict]],
+        jewish_events: list[dict] | None = None,
     ) -> dict:
         news_section = "\n".join(
             f"{i}. {item['title']}: {item.get('summary', '')}"
@@ -102,11 +103,18 @@ class ClaudeCLI:
             mefarshim_section += f"\n### {mefaresh}\n"
             for t in texts[:5]:
                 mefarshim_section += f"- {t.get('ref', '')}: {t.get('text', '')[:150]}\n"
+        events_section = "אין מועדים מיוחדים קרובים."
+        if jewish_events:
+            events_section = "\n".join(
+                f"- {e['title']} ({e.get('date', '')})"
+                for e in jewish_events
+            )
         prompt = THEMES_PROMPT_TEMPLATE.format(
             parasha_name=parasha_name,
             parasha_text=parasha_text[:2000],
             news_section=news_section,
             mefarshim_section=mefarshim_section,
+            events_section=events_section,
         )
         raw = await self._run_claude(prompt)
         try:
