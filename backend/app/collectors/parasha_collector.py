@@ -38,7 +38,7 @@ MEFARSHIM_MAP = {
 
 class ParashaCollector:
     def __init__(self):
-        self.client = httpx.AsyncClient(timeout=30)
+        self.client = httpx.AsyncClient(timeout=60)
 
     async def _fetch_hebcal(self, params: dict) -> dict:
         resp = await self.client.get(HEBCAL_BASE, params=params)
@@ -107,7 +107,10 @@ class ParashaCollector:
     async def collect_mefarshim(self, parasha_ref: str, mefarshim_list: list[str]) -> dict[str, list[dict]]:
         result = {}
         for mefaresh in mefarshim_list:
-            result[mefaresh] = await self.get_commentary(parasha_ref, mefaresh)
+            try:
+                result[mefaresh] = await self.get_commentary(parasha_ref, mefaresh)
+            except Exception:
+                result[mefaresh] = []
         return result
 
     async def close(self):

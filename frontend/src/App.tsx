@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { WeeklyDashboard } from './components/WeeklyDashboard'
+import { ConnectionDashboard } from './components/ConnectionDashboard'
 import { SuggestionCards } from './components/SuggestionCards'
 import { DvarToraEditor } from './components/Editor/DvarToraEditor'
 import { Settings } from './components/Settings'
@@ -26,7 +26,7 @@ export default function App() {
       </div>
 
       {view === 'dashboard' && (
-        <WeeklyDashboard onProceed={(c) => { setCollection(c); setView('suggestions') }} />
+        <ConnectionDashboard onProceed={(c) => { setCollection(c); setView('suggestions') }} />
       )}
       {view === 'suggestions' && collection && (
         <SuggestionCards

@@ -5,6 +5,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from app.models import WeeklyCollection, UserProfile
 from app.collectors.parasha_collector import ParashaCollector, MEFARSHIM_MAP
 from app.collectors.news_collector import NewsCollector
+from app.ai.claude_cli import ClaudeCLI
 from app.database import DB_PATH
 
 def get_engine():
@@ -45,6 +46,21 @@ async def run_weekly_prep():
         mefarshim = await pc.collect_mefarshim(parasha["ref"], mefarshim_list)
         news = await nc.collect()
 
+        parasha_text_str = "\n".join(t["text"] for t in parasha_text)
+
+        # Generate themes and connections via Claude
+        claude = ClaudeCLI()
+        try:
+            theme_data = await claude.generate_themes_and_connections(
+                parasha_name=parasha["name"],
+                parasha_text=parasha_text_str,
+                news_items=news,
+                mefarshim_texts=mefarshim,
+            )
+        except Exception as e:
+            print(f"Theme generation failed: {e}")
+            theme_data = {"themes": [], "connections": []}
+
         # Store
         with Session(engine) as session:
             collection = WeeklyCollection(
@@ -55,7 +71,9 @@ async def run_weekly_prep():
                 status="collected",
                 news_items=news,
                 mefarshim_texts=mefarshim,
-                parasha_text="\n".join(t["text"] for t in parasha_text),
+                parasha_text=parasha_text_str,
+                parasha_themes=theme_data["themes"],
+                connections=theme_data["connections"],
             )
             session.add(collection)
             session.commit()

@@ -12,6 +12,18 @@ export interface MefareshText {
   text: string
 }
 
+export interface ParashaTheme {
+  title: string
+  description: string
+}
+
+export interface Connection {
+  news_index: number
+  theme_index: number
+  strength: number
+  reason: string
+}
+
 export interface WeeklyCollection {
   id: number
   parasha_name: string
@@ -22,6 +34,8 @@ export interface WeeklyCollection {
   news_items: NewsItem[]
   mefarshim_texts: Record<string, MefareshText[]>
   parasha_text: string
+  parasha_themes: ParashaTheme[]
+  connections: Connection[]
 }
 
 export interface DvarToraSuggestion {

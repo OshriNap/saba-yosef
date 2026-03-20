@@ -16,6 +16,8 @@ class WeeklyCollection(SQLModel, table=True):
     news_items: list[dict] = Field(default=[], sa_column=Column(JSON))
     mefarshim_texts: dict = Field(default={}, sa_column=Column(JSON))
     parasha_text: str = ""
+    parasha_themes: list[dict] = Field(default=[], sa_column=Column(JSON))
+    connections: list[dict] = Field(default=[], sa_column=Column(JSON))
 
 class DvarToraSuggestion(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

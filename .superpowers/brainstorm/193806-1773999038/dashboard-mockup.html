@@ -1,0 +1,101 @@
+<h2>Dashboard Layout: News ↔ Parasha Connection Map</h2>
+<p class="subtitle">Which layout best shows the connections between Israeli news and Torah themes?</p>
+
+<div class="cards">
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1a1a2e;padding:20px;border-radius:8px;color:#e0e0e0;font-family:system-ui;">
+        <div style="text-align:center;margin-bottom:15px;font-size:18px;font-weight:bold;color:#fff;">פרשת ויקרא</div>
+        <div style="display:flex;gap:20px;">
+          <!-- Right: News -->
+          <div style="flex:1;direction:rtl;">
+            <div style="font-weight:bold;text-align:center;color:#60a5fa;margin-bottom:8px;">חדשות השבוע</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-right:3px solid #60a5fa;font-size:12px;">מלחמה ושלום</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-right:3px solid #60a5fa;font-size:12px;">רפורמה במשפט</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-right:3px solid #60a5fa;font-size:12px;">כלכלה ויוקר</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-right:3px solid #60a5fa;font-size:12px;">חינוך וחברה</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;border-right:3px solid #60a5fa;font-size:12px;">טכנולוגיה</div>
+          </div>
+          <!-- Middle: Connection Lines (SVG) -->
+          <div style="width:120px;position:relative;">
+            <svg width="120" height="200" style="position:absolute;top:0;">
+              <!-- Thick line: war → sacrifices -->
+              <line x1="0" y1="20" x2="120" y2="20" stroke="#f59e0b" stroke-width="5" opacity="0.8"/>
+              <!-- Medium: justice reform → laws -->
+              <line x1="0" y1="55" x2="120" y2="70" stroke="#f59e0b" stroke-width="3" opacity="0.6"/>
+              <!-- Thin: economy → giving -->
+              <line x1="0" y1="90" x2="120" y2="120" stroke="#f59e0b" stroke-width="2" opacity="0.4"/>
+              <!-- Medium: education → kedusha -->
+              <line x1="0" y1="125" x2="120" y2="70" stroke="#f59e0b" stroke-width="3" opacity="0.5"/>
+              <!-- Thin: tech → fire -->
+              <line x1="0" y1="160" x2="120" y2="170" stroke="#f59e0b" stroke-width="1" opacity="0.3"/>
+            </svg>
+          </div>
+          <!-- Left: Parasha Themes -->
+          <div style="flex:1;direction:rtl;">
+            <div style="font-weight:bold;text-align:center;color:#a78bfa;margin-bottom:8px;">נושאי הפרשה</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #a78bfa;font-size:12px;">קרבנות</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #a78bfa;font-size:12px;">דיני כהונה</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #a78bfa;font-size:12px;">נדבה וחובה</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #a78bfa;font-size:12px;">קדושה וטהרה</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;border-left:3px solid #a78bfa;font-size:12px;">אש מן השמים</div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:15px;">
+          <button style="background:#3b82f6;color:white;border:none;padding:10px 30px;border-radius:8px;font-size:14px;cursor:pointer;">צור הצעות דבר תורה</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A: SVG Connection Lines</h3>
+      <p>Static lines with varying thickness. Clean and simple. Lines pre-computed by AI based on thematic analysis.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1a1a2e;padding:20px;border-radius:8px;color:#e0e0e0;font-family:system-ui;">
+        <div style="text-align:center;margin-bottom:15px;font-size:18px;font-weight:bold;color:#fff;">פרשת ויקרא</div>
+        <div style="display:flex;gap:20px;">
+          <!-- Right: News (interactive) -->
+          <div style="flex:1;direction:rtl;">
+            <div style="font-weight:bold;text-align:center;color:#60a5fa;margin-bottom:8px;">חדשות השבוע</div>
+            <div style="background:#3b4a6b;padding:8px;border-radius:6px;margin-bottom:6px;border-right:3px solid #fbbf24;font-size:12px;box-shadow:0 0 8px #fbbf2444;">✓ מלחמה ושלום</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-right:3px solid #60a5fa;font-size:12px;opacity:0.6;">רפורמה במשפט</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-right:3px solid #60a5fa;font-size:12px;opacity:0.6;">כלכלה ויוקר</div>
+            <div style="background:#3b4a6b;padding:8px;border-radius:6px;margin-bottom:6px;border-right:3px solid #fbbf24;font-size:12px;box-shadow:0 0 8px #fbbf2444;">✓ חינוך וחברה</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;border-right:3px solid #60a5fa;font-size:12px;opacity:0.6;">טכנולוגיה</div>
+          </div>
+          <!-- Middle: Only selected connections glow -->
+          <div style="width:120px;position:relative;">
+            <svg width="120" height="200" style="position:absolute;top:0;">
+              <line x1="0" y1="20" x2="120" y2="20" stroke="#fbbf24" stroke-width="4" opacity="0.9"/>
+              <line x1="0" y1="20" x2="120" y2="120" stroke="#fbbf24" stroke-width="2" opacity="0.6"/>
+              <line x1="0" y1="125" x2="120" y2="70" stroke="#fbbf24" stroke-width="3" opacity="0.7"/>
+              <line x1="0" y1="125" x2="120" y2="120" stroke="#fbbf24" stroke-width="2" opacity="0.5"/>
+            </svg>
+          </div>
+          <!-- Left: Parasha (highlights connected) -->
+          <div style="flex:1;direction:rtl;">
+            <div style="font-weight:bold;text-align:center;color:#a78bfa;margin-bottom:8px;">נושאי הפרשה</div>
+            <div style="background:#3b4a6b;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #fbbf24;font-size:12px;box-shadow:0 0 8px #fbbf2444;">↤ קרבנות</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #a78bfa;font-size:12px;opacity:0.4;">דיני כהונה</div>
+            <div style="background:#3b4a6b;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #fbbf24;font-size:12px;box-shadow:0 0 8px #fbbf2444;">↤ נדבה וחובה</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;margin-bottom:6px;border-left:3px solid #a78bfa;font-size:12px;opacity:0.4;">קדושה וטהרה</div>
+            <div style="background:#2a2a4a;padding:8px;border-radius:6px;border-left:3px solid #a78bfa;font-size:12px;opacity:0.4;">אש מן השמים</div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:15px;font-size:11px;color:#94a3b8;">נבחרו 2 חדשות ← 2 נושאי פרשה מקושרים</div>
+        <div style="text-align:center;margin-top:8px;">
+          <button style="background:#f59e0b;color:#1a1a2e;border:none;padding:10px 30px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;">צור דבר תורה על הנבחרים</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B: Interactive Selection + Dynamic Lines</h3>
+      <p>User clicks news items on the right → connected parasha themes light up on the left with glowing lines. Can also click parasha themes to highlight connected news. Generate based on selection.</p>
+    </div>
+  </div>
+</div>

@@ -5,6 +5,7 @@ from app.ai.prompts import (
     SUGGESTION_PROMPT_TEMPLATE,
     EXPAND_PROMPT_TEMPLATE,
     CHAT_PROMPT_TEMPLATE,
+    THEMES_PROMPT_TEMPLATE,
 )
 
 
@@ -84,6 +85,40 @@ class ClaudeCLI:
             parasha_text=parasha_text[:2000],
         )
         return await self._run_claude(prompt, session_id=session_id)
+
+    async def generate_themes_and_connections(
+        self,
+        parasha_name: str,
+        parasha_text: str,
+        news_items: list[dict],
+        mefarshim_texts: dict[str, list[dict]],
+    ) -> dict:
+        news_section = "\n".join(
+            f"{i}. {item['title']}: {item.get('summary', '')}"
+            for i, item in enumerate(news_items)
+        )
+        mefarshim_section = ""
+        for mefaresh, texts in mefarshim_texts.items():
+            mefarshim_section += f"\n### {mefaresh}\n"
+            for t in texts[:5]:
+                mefarshim_section += f"- {t.get('ref', '')}: {t.get('text', '')[:150]}\n"
+        prompt = THEMES_PROMPT_TEMPLATE.format(
+            parasha_name=parasha_name,
+            parasha_text=parasha_text[:2000],
+            news_section=news_section,
+            mefarshim_section=mefarshim_section,
+        )
+        raw = await self._run_claude(prompt)
+        try:
+            start = raw.index("{")
+            end = raw.rindex("}") + 1
+            data = json.loads(raw[start:end])
+            return {
+                "themes": data.get("themes", []),
+                "connections": data.get("connections", []),
+            }
+        except (ValueError, json.JSONDecodeError):
+            return {"themes": [], "connections": []}
 
     async def chat_edit(
         self,
