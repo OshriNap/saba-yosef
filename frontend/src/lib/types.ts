@@ -44,4 +44,4 @@ export interface DvarTora {
   sources: MefareshText[]
 }
 
-export type MefarshimCategory = 'pshat' | 'hasidic' | 'bikoret' | 'mixed'
+export type MefarshimCategory = 'pshat' | 'hasidic' | 'mussar' | 'midrash' | 'bikoret' | 'mixed'

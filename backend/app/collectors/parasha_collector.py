@@ -5,9 +5,35 @@ HEBCAL_BASE = "https://www.hebcal.com/shabbat"
 SEFARIA_BASE = "https://www.sefaria.org/api"
 
 MEFARSHIM_MAP = {
-    "pshat": ["Rashi", "Ramban", "Ibn Ezra", "Sforno", "Rashbam", "Or HaChaim"],
-    "hasidic": ["Sefat Emet", "Netivot Shalom", "Mei HaShiloach", "Kedushat Levi", "Noam Elimelech"],
-    "bikoret": [],
+    "pshat": [
+        "Rashi", "Ramban", "Ibn Ezra", "Sforno", "Rashbam", "Or HaChaim",
+        "Chizkuni", "Rabbeinu Bahya", "Bekhor Shor", "Da'at Zekenim",
+        "Kli Yakar", "Malbim", "Rav Hirsch", "Haamek Davar",
+        "Abarbanel on Torah", "HaKtav VeHaKabalah", "Minchat Shai",
+        "Ralbag on Torah", "Siftei Chakhamim", "Tur HaAroch",
+        "Alshekh on Torah", "Akeidat Yitzchak",
+    ],
+    "hasidic": [
+        "Sefat Emet", "Mei HaShiloach", "Kedushat Levi",
+        "Noam Elimelekh", "Toldot Yaakov Yosef", "Degel Machaneh Ephraim",
+        "Maor VaShemesh", "Ohev Yisrael", "Tiferet Shlomo",
+        "Bat Ayin", "Likutei Moharan", "Peri Tzadik",
+        "Zera Kodesh", "Ohr HaMeir", "Yismach Moshe",
+        "Ben Porat Yosef", "Agra DeKala",
+    ],
+    "mussar": [
+        "Akeidat Yitzchak", "Shenei Luchot HaBerit", "Alshekh on Torah",
+        "Kav HaYashar", "Reshit Chokhmah", "Rabbeinu Bahya",
+        "Recanati on the Torah",
+    ],
+    "midrash": [
+        "Midrash Tanchuma", "Midrash Tanchuma Buber", "Vayikra Rabbah",
+        "Shemot Rabbah", "Bamidbar Rabbah", "Midrash Aggadah",
+        "Sifra", "Yalkut Shimoni on Torah", "Zohar",
+    ],
+    "bikoret": [
+        "Shadal", "David Zvi Hoffmann", "Reggio",
+    ],
 }
 
 class ParashaCollector:

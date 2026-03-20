@@ -1,9 +1,11 @@
 import type { MefarshimCategory } from '../lib/types'
 
 const CATEGORIES: { value: MefarshimCategory; label: string; description: string }[] = [
-  { value: 'pshat', label: 'פשט', description: 'רש״י, רמב״ן, אבן עזרא, ספורנו' },
-  { value: 'hasidic', label: 'חסידות', description: 'שפת אמת, נתיבות שלום, מי השילוח' },
-  { value: 'bikoret', label: 'ביקורת המקרא', description: 'פרשנות אקדמית וביקורתית' },
+  { value: 'pshat', label: 'פשט', description: 'רש״י, רמב״ן, אבן עזרא, כלי יקר, מלבי״ם, העמק דבר' },
+  { value: 'hasidic', label: 'חסידות', description: 'שפת אמת, מי השילוח, קדושת לוי, נועם אלימלך, תולדות' },
+  { value: 'mussar', label: 'מוסר', description: 'עקידת יצחק, של״ה, אלשיך, רבינו בחיי' },
+  { value: 'midrash', label: 'מדרש', description: 'תנחומא, ויקרא רבה, ספרא, ילקוט שמעוני, זוהר' },
+  { value: 'bikoret', label: 'ביקורת המקרא', description: 'שד״ל, דוד צבי הופמן, רג׳יו' },
   { value: 'mixed', label: 'מעורב', description: 'בחירה חופשית של מפרשים' },
 ]
 
