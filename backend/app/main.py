@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import parasha, news, dvar_tora, pdf, settings
 from app.database import init_db
 
-app = FastAPI(title="Dvar Torah Agent")
+app = FastAPI(title="Saba Yosef — Dvar Torah Agent")
 
 app.add_middleware(
     CORSMiddleware,
