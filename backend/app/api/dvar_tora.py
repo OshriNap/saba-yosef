@@ -1,4 +1,6 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 from pydantic import BaseModel
 from app.database import get_session
@@ -105,6 +107,89 @@ async def chat_edit(data: ChatRequest):
         session_id=data.session_id,
     )
     return {"updated_text": result}
+
+@router.get("/suggestions/{collection_id}/stream")
+async def stream_suggestions(collection_id: int, session: Session = Depends(get_session)):
+    collection = session.get(WeeklyCollection, collection_id)
+    if not collection:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    async def generate():
+        full_text = ""
+        async for chunk in claude.stream_suggestions(
+            parasha_name=collection.parasha_name,
+            parasha_text=collection.parasha_text,
+            news_items=collection.news_items,
+            mefarshim_texts=collection.mefarshim_texts,
+        ):
+            full_text += chunk
+            yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
+
+        # Parse final result and save suggestions
+        try:
+            start = full_text.index("{")
+            end = full_text.rindex("}") + 1
+            data = json.loads(full_text[start:end])
+            suggestions = data.get("suggestions", [])
+        except (ValueError, json.JSONDecodeError):
+            suggestions = [{"title": "שגיאה בפענוח", "thesis": full_text[:200], "outline": "", "sources": [], "linked_news": []}]
+
+        saved = []
+        for s in suggestions:
+            suggestion = DvarToraSuggestion(
+                collection_id=collection_id,
+                title=s.get("title", ""),
+                thesis=s.get("thesis", ""),
+                outline=s.get("outline", ""),
+                sources=s.get("sources", []),
+                linked_news_themes=s.get("linked_news", []),
+            )
+            session.add(suggestion)
+            saved.append(suggestion)
+        session.commit()
+        for s in saved:
+            session.refresh(s)
+
+        result = [{"id": s.id, "collection_id": s.collection_id, "title": s.title, "thesis": s.thesis, "outline": s.outline, "sources": s.sources, "linked_news_themes": s.linked_news_themes} for s in saved]
+        yield f"data: {json.dumps({'type': 'done', 'suggestions': result})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+@router.get("/expand/{suggestion_id}/stream")
+async def stream_expand(suggestion_id: int, session: Session = Depends(get_session)):
+    suggestion = session.get(DvarToraSuggestion, suggestion_id)
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    collection = session.get(WeeklyCollection, suggestion.collection_id)
+    session_id = f"week-{collection.id}"
+
+    async def generate():
+        full_text = ""
+        async for chunk in claude.stream_expand(
+            title=suggestion.title,
+            thesis=suggestion.thesis,
+            outline=suggestion.outline,
+            sources=suggestion.sources,
+            parasha_text=collection.parasha_text,
+            session_id=session_id,
+        ):
+            full_text += chunk
+            yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
+
+        dvar = DvarTora(
+            collection_id=collection.id,
+            suggestion_id=suggestion_id,
+            title=suggestion.title,
+            content=full_text,
+            sources=suggestion.sources,
+        )
+        session.add(dvar)
+        session.commit()
+        session.refresh(dvar)
+
+        yield f"data: {json.dumps({'type': 'done', 'dvar_tora': {'id': dvar.id, 'collection_id': dvar.collection_id, 'suggestion_id': dvar.suggestion_id, 'title': dvar.title, 'content': dvar.content, 'status': dvar.status, 'sources': dvar.sources}})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 @router.post("/expand/{suggestion_id}")
 async def expand_suggestion(suggestion_id: int, session: Session = Depends(get_session)):

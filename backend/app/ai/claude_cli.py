@@ -1,5 +1,6 @@
 import asyncio
 import json
+from typing import AsyncGenerator
 from app.ai.prompts import (
     SYSTEM_PROMPT,
     SUGGESTION_PROMPT_TEMPLATE,
@@ -10,10 +11,14 @@ from app.ai.prompts import (
 
 
 class ClaudeCLI:
-    async def _run_claude(self, prompt: str, session_id: str | None = None) -> str:
+    def _build_cmd(self, prompt: str, session_id: str | None = None) -> list[str]:
         cmd = ["claude", "--print", "-p", prompt]
         if session_id:
             cmd = ["claude", "--print", "--session-id", session_id, "-p", prompt]
+        return cmd
+
+    async def _run_claude(self, prompt: str, session_id: str | None = None) -> str:
+        cmd = self._build_cmd(prompt, session_id)
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -23,6 +28,21 @@ class ClaudeCLI:
         if proc.returncode != 0:
             raise RuntimeError(f"Claude CLI failed: {stderr.decode()}")
         return stdout.decode()
+
+    async def _stream_claude(self, prompt: str, session_id: str | None = None) -> AsyncGenerator[str, None]:
+        """Stream Claude CLI output chunk by chunk."""
+        cmd = self._build_cmd(prompt, session_id)
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        while True:
+            chunk = await proc.stdout.read(64)
+            if not chunk:
+                break
+            yield chunk.decode()
+        await proc.wait()
 
     def _build_suggestion_prompt(
         self,
@@ -64,6 +84,41 @@ class ClaudeCLI:
             return data.get("suggestions", [])
         except (ValueError, json.JSONDecodeError):
             return [{"title": "שגיאה בפענוח", "thesis": raw[:200], "outline": "", "sources": [], "linked_news": []}]
+
+    async def stream_suggestions(
+        self,
+        parasha_name: str,
+        parasha_text: str,
+        news_items: list[dict],
+        mefarshim_texts: dict[str, list[dict]],
+    ) -> AsyncGenerator[str, None]:
+        prompt = self._build_suggestion_prompt(
+            parasha_name, parasha_text, news_items, mefarshim_texts
+        )
+        async for chunk in self._stream_claude(prompt):
+            yield chunk
+
+    async def stream_expand(
+        self,
+        title: str,
+        thesis: str,
+        outline: str,
+        sources: list[dict],
+        parasha_text: str,
+        session_id: str,
+    ) -> AsyncGenerator[str, None]:
+        sources_section = "\n".join(
+            f"- {s.get('mefaresh', '')}: {s.get('ref', '')}" for s in sources
+        )
+        prompt = EXPAND_PROMPT_TEMPLATE.format(
+            title=title,
+            thesis=thesis,
+            outline=outline,
+            sources_section=sources_section,
+            parasha_text=parasha_text[:2000],
+        )
+        async for chunk in self._stream_claude(prompt, session_id=session_id):
+            yield chunk
 
     async def expand_suggestion(
         self,

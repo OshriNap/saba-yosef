@@ -3,56 +3,6 @@ import { api } from '../lib/api'
 import { MefarshimPicker } from './MefarshimPicker'
 import type { WeeklyCollection, DvarTora, DvarToraSuggestion, MefarshimCategory } from '../lib/types'
 
-const STEPS = [
-  'מנתח את פרשת השבוע...',
-  'סורק מפרשים רלוונטיים...',
-  'מחפש קשרים עם האקטואליה...',
-  'בונה הצעות לדבר תורה...',
-  'מסיים ומסדר...',
-]
-
-function ProgressBar({ running }: { running: boolean }) {
-  const [step, setStep] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
-
-  useEffect(() => {
-    if (!running) {
-      setStep(0)
-      setProgress(0)
-      return
-    }
-    setStep(0)
-    setProgress(0)
-
-    intervalRef.current = setInterval(() => {
-      setProgress(prev => {
-        const next = prev + 0.5
-        const newStep = Math.min(Math.floor(next / 20), STEPS.length - 1)
-        setStep(newStep)
-        return Math.min(next, 95) // Never reach 100 until actually done
-      })
-    }, 600)
-
-    return () => clearInterval(intervalRef.current)
-  }, [running])
-
-  if (!running) return null
-
-  return (
-    <div className="max-w-md mx-auto mt-8">
-      <div className="text-center mb-3 text-amber-700 font-medium">{STEPS[step]}</div>
-      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-        <div
-          className="h-full rounded-full bg-gradient-to-l from-amber-400 to-amber-600 transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <div className="text-center mt-2 text-xs text-gray-400">זה לוקח בערך דקה-שתיים</div>
-    </div>
-  )
-}
-
 export function SuggestionCards({ collection, onSelect, onBack }: {
   collection: WeeklyCollection
   onSelect: (dvar: DvarTora) => void
@@ -60,8 +10,12 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
 }) {
   const [suggestions, setSuggestions] = useState<DvarToraSuggestion[]>([])
   const [loading, setLoading] = useState(false)
+  const [streamText, setStreamText] = useState('')
   const [expanding, setExpanding] = useState<number | null>(null)
+  const [expandText, setExpandText] = useState('')
   const [category, setCategory] = useState<MefarshimCategory>('pshat')
+  const streamRef = useRef<HTMLDivElement>(null)
+  const expandRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     api.getSuggestions(collection.id).then((s) => {
@@ -69,24 +23,42 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
     })
   }, [collection.id])
 
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     setLoading(true)
-    try {
-      const result = await api.generateSuggestions(collection.id)
-      setSuggestions(result)
-    } finally {
-      setLoading(false)
-    }
+    setStreamText('')
+    api.streamSuggestions(
+      collection.id,
+      (chunk) => {
+        setStreamText(prev => prev + chunk)
+        if (streamRef.current) {
+          streamRef.current.scrollTop = streamRef.current.scrollHeight
+        }
+      },
+      (result) => {
+        setSuggestions(result)
+        setLoading(false)
+        setStreamText('')
+      },
+    )
   }
 
-  const handleSelect = async (suggestion: DvarToraSuggestion) => {
+  const handleSelect = (suggestion: DvarToraSuggestion) => {
     setExpanding(suggestion.id)
-    try {
-      const dvar = await api.expandSuggestion(suggestion.id)
-      onSelect(dvar)
-    } finally {
-      setExpanding(null)
-    }
+    setExpandText('')
+    api.streamExpand(
+      suggestion.id,
+      (chunk) => {
+        setExpandText(prev => prev + chunk)
+        if (expandRef.current) {
+          expandRef.current.scrollTop = expandRef.current.scrollHeight
+        }
+      },
+      (dvar) => {
+        setExpanding(null)
+        setExpandText('')
+        onSelect(dvar)
+      },
+    )
   }
 
   return (
@@ -106,7 +78,43 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
         </div>
       )}
 
-      <ProgressBar running={loading} />
+      {/* Streaming text for suggestions */}
+      {loading && (
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+            <span className="text-amber-700 font-medium">Claude כותב...</span>
+          </div>
+          <div
+            ref={streamRef}
+            dir="rtl"
+            className="bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-lg max-h-80 overflow-y-auto whitespace-pre-wrap leading-relaxed"
+          >
+            {streamText || '...'}
+            <span className="animate-pulse">▊</span>
+          </div>
+        </div>
+      )}
+
+      {/* Streaming text for expand */}
+      {expanding !== null && expandText && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-8">
+          <div className="bg-gray-900 rounded-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center gap-2 p-4 border-b border-gray-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-green-400 font-medium">כותב דבר תורה מלא...</span>
+            </div>
+            <div
+              ref={expandRef}
+              dir="rtl"
+              className="text-green-400 font-mono text-sm p-4 overflow-y-auto flex-1 whitespace-pre-wrap leading-relaxed"
+            >
+              {expandText}
+              <span className="animate-pulse">▊</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 mt-6">
         {suggestions.map((s) => (
@@ -124,23 +132,13 @@ export function SuggestionCards({ collection, onSelect, onBack }: {
                 <span key={i} className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">{src.mefaresh} — {src.ref}</span>
               ))}
             </div>
-            {expanding === s.id ? (
-              <div className="mt-2">
-                <div className="text-sm text-amber-700 mb-2">כותב דבר תורה מלא...</div>
-                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div className="h-full rounded-full bg-gradient-to-l from-green-400 to-green-600 animate-pulse" style={{ width: '70%' }} />
-                </div>
-                <div className="text-xs text-gray-400 mt-1">זה לוקח בערך דקה</div>
-              </div>
-            ) : (
-              <button
-                onClick={() => handleSelect(s)}
-                disabled={expanding !== null}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-              >
-                בחר ופתח
-              </button>
-            )}
+            <button
+              onClick={() => handleSelect(s)}
+              disabled={expanding !== null}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+            >
+              בחר ופתח
+            </button>
           </div>
         ))}
       </div>
