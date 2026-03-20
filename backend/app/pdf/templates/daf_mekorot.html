@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4;
+    margin: 2cm;
+    @bottom-center { content: counter(page); font-size: 10pt; }
+  }
+
+  body {
+    font-family: 'Noto Serif Hebrew', 'David', serif;
+    font-size: 12pt;
+    line-height: 1.8;
+    direction: rtl;
+    color: #1a1a1a;
+  }
+
+  .header {
+    text-align: center;
+    border-bottom: 2px solid #333;
+    padding-bottom: 12pt;
+    margin-bottom: 18pt;
+  }
+
+  .header h1 {
+    font-size: 20pt;
+    margin-bottom: 4pt;
+  }
+
+  .header .parasha {
+    font-size: 14pt;
+    color: #555;
+  }
+
+  .header .date {
+    font-size: 10pt;
+    color: #777;
+  }
+
+  .content {
+    margin-bottom: 24pt;
+    text-align: justify;
+  }
+
+  .content p { margin-bottom: 10pt; }
+
+  .sources-title {
+    font-size: 14pt;
+    font-weight: bold;
+    border-bottom: 1px solid #999;
+    padding-bottom: 6pt;
+    margin-bottom: 12pt;
+  }
+
+  .sources-grid {
+    display: grid;
+    grid-template-columns: {% if layout == 'compact' %}1fr 1fr{% else %}1fr{% endif %};
+    gap: 12pt;
+  }
+
+  .source-box {
+    border: 1px solid #999;
+    border-radius: 4pt;
+    padding: 10pt;
+    break-inside: avoid;
+  }
+
+  .source-box .mefaresh {
+    font-weight: bold;
+    font-size: 11pt;
+    margin-bottom: 4pt;
+  }
+
+  .source-box .ref {
+    font-size: 9pt;
+    color: #666;
+    margin-bottom: 6pt;
+  }
+
+  .source-box .text {
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  .footer {
+    margin-top: 24pt;
+    text-align: center;
+    font-size: 9pt;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>{{ title }}</h1>
+    <div class="parasha">{{ parasha_name }}</div>
+    <div class="date">{{ hebrew_date }} | {{ gregorian_date }}</div>
+  </div>
+
+  <div class="content">
+    {{ content | safe }}
+  </div>
+
+  {% if sources %}
+  <div class="sources-title">מקורות</div>
+  <div class="sources-grid">
+    {% for source in sources %}
+    <div class="source-box">
+      <div class="mefaresh">{{ source.mefaresh }}</div>
+      <div class="ref">{{ source.ref }}</div>
+      <div class="text">{{ source.text }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="footer">דף מקורות — הופק באמצעות דבר תורה Agent</div>
+</body>
+</html>
