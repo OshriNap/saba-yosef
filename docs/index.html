@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>דבר תורה — סוכן שבועי להכנת דבר תורה לשבת</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700&family=Noto+Serif+Hebrew:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans Hebrew', sans-serif; background: #faf8f5; color: #1a1a1a; line-height: 1.8; }
+
+.hero {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: #f1f5f9;
+  padding: 80px 20px;
+  text-align: center;
+}
+.hero h1 { font-family: 'Noto Serif Hebrew', serif; font-size: 3em; margin-bottom: 16px; }
+.hero p { font-size: 1.2em; color: #94a3b8; max-width: 600px; margin: 0 auto; }
+.hero .badge { display: inline-block; background: #f59e0b; color: #1a1a1a; padding: 6px 16px; border-radius: 20px; font-size: 0.85em; font-weight: 600; margin-top: 20px; }
+
+.container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+
+h2 { font-family: 'Noto Serif Hebrew', serif; font-size: 1.8em; margin: 50px 0 20px; color: #1e293b; border-bottom: 2px solid #f59e0b; padding-bottom: 8px; }
+h3 { font-size: 1.2em; margin: 30px 0 10px; color: #334155; }
+
+p, li { font-size: 1.05em; margin-bottom: 12px; }
+ul, ol { padding-right: 24px; }
+
+.step-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin: 30px 0; }
+@media (min-width: 640px) { .step-grid { grid-template-columns: 1fr 1fr; } }
+
+.step {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border-right: 4px solid #f59e0b;
+  position: relative;
+}
+.step-number {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  background: #f59e0b;
+  color: #1a1a1a;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1em;
+}
+.step h3 { margin-top: 0; color: #1e293b; }
+.step p { color: #475569; font-size: 0.95em; }
+
+.feature-list { display: grid; grid-template-columns: 1fr; gap: 16px; margin: 20px 0; }
+@media (min-width: 640px) { .feature-list { grid-template-columns: 1fr 1fr 1fr; } }
+
+.feature {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.feature .icon { font-size: 2em; margin-bottom: 10px; }
+.feature h4 { font-size: 1em; margin-bottom: 6px; color: #1e293b; }
+.feature p { font-size: 0.85em; color: #64748b; margin: 0; }
+
+.mefarshim-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+.mefarshim-table th { background: #1e293b; color: white; padding: 12px 16px; text-align: right; }
+.mefarshim-table td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+.mefarshim-table tr:nth-child(even) { background: #f8fafc; }
+
+.code-block {
+  background: #1e293b;
+  color: #a5f3fc;
+  padding: 20px;
+  border-radius: 12px;
+  font-family: monospace;
+  font-size: 0.9em;
+  direction: ltr;
+  text-align: left;
+  overflow-x: auto;
+  margin: 16px 0;
+  line-height: 1.6;
+}
+.code-block .comment { color: #64748b; }
+
+.diagram {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  margin: 30px 0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  text-align: center;
+  direction: rtl;
+}
+.diagram pre {
+  font-family: monospace;
+  font-size: 0.85em;
+  line-height: 1.5;
+  display: inline-block;
+  text-align: right;
+}
+
+.tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin: 20px 0; }
+.tech-item {
+  background: white;
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #334155;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+footer {
+  background: #1e293b;
+  color: #94a3b8;
+  text-align: center;
+  padding: 40px 20px;
+  margin-top: 60px;
+  font-size: 0.9em;
+}
+footer a { color: #f59e0b; text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>📜 דבר תורה</h1>
+  <p>סוכן שבועי שמחבר בין אקטואליה ישראלית לפרשת השבוע דרך מפרשים — הכל בעברית, מונע בינה מלאכותית</p>
+  <div class="badge">Claude AI + Sefaria + חדשות ישראליות</div>
+</div>
+
+<div class="container">
+
+  <h2>איך זה עובד?</h2>
+  <p>הסוכן רץ כל יום חמישי, אוסף חדשות ופרשת שבוע, ומייצר מפת קשרים אינטראקטיבית. אתה בוחר מה מעניין אותך, והסוכן כותב לך דבר תורה מותאם אישית.</p>
+
+  <div class="step-grid">
+    <div class="step">
+      <div class="step-number">1</div>
+      <h3>איסוף אוטומטי</h3>
+      <p>כל יום חמישי ב-08:00, הסוכן אוסף חדשות מ-6 מקורות ישראליים, מוריד את פרשת השבוע מ-Sefaria עם עשרות מפרשים, ומזהה מועדים יהודיים קרובים.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <h3>מפת קשרים</h3>
+      <p>Claude מנתח את החדשות והפרשה ומזהה קשרים תמטיים. התוצאה מוצגת כמפה אינטראקטיבית — חדשות בצד ימין, נושאי פרשה בצד שמאל, קווים מחברים ביניהם.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <h3>בחירת נושאים</h3>
+      <p>לחץ על חדשות ונושאי פרשה שמעניינים אותך. הקווים המחברים מתעדכנים בזמן אמת. אפשר גם להוסיף נושאים חופשיים משני הצדדים.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">4</div>
+      <h3>הצעות דבר תורה</h3>
+      <p>על בסיס הבחירות שלך, Claude מייצר 5 הצעות לדבר תורה — כל אחת עם כותרת, תזה, מתאר ומקורות ממפרשים. הטקסט נכתב בזמן אמת על המסך.</p>
+    </div>
+    <div class="step">
+      <div class="step-number">5</div>
+      <h3>עריכה עם AI</h3>
+      <p>בחר הצעה ופתח אותה לדבר תורה מלא. עורך טקסט עשיר (RTL) עם צ'אט AI בצד — "הוסף מקור מרש"י", "חזק את הנקודה הזו", "קצר פסקה".</p>
+    </div>
+    <div class="step">
+      <div class="step-number">6</div>
+      <h3>דף מקורות PDF</h3>
+      <p>כשסיימת, ייצר דף מקורות מעוצב להדפסה — כותרת, טקסט דבר התורה, ותיבות מקורות ממפרשים. מוכן לחלוקה בבית כנסת.</p>
+    </div>
+  </div>
+
+  <h2>תכונות עיקריות</h2>
+  <div class="feature-list">
+    <div class="feature">
+      <div class="icon">🗺️</div>
+      <h4>מפת קשרים אינטראקטיבית</h4>
+      <p>קווי SVG מחברים חדשות לנושאי פרשה. עובי הקו = עוצמת הקשר.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">📡</div>
+      <h4>Streaming בזמן אמת</h4>
+      <p>צפייה ב-Claude כותב את דבר התורה מילה אחרי מילה על המסך.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">📚</div>
+      <h4>60+ מפרשים</h4>
+      <p>פשט, חסידות, מוסר, מדרש וביקורת המקרא — הכל מ-Sefaria.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">📅</div>
+      <h4>מועדים יהודיים</h4>
+      <p>זיהוי אוטומטי של חגים, צומות וימים מיוחדים קרובים.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">✏️</div>
+      <h4>עורך RTL + צ'אט AI</h4>
+      <p>עריכת טקסט עשירה בעברית עם עוזר AI בצד.</p>
+    </div>
+    <div class="feature">
+      <div class="icon">🖨️</div>
+      <h4>דף מקורות PDF</h4>
+      <p>תבנית מקצועית להדפסה עם מקורות ממפרשים.</p>
+    </div>
+  </div>
+
+  <h2>מפרשים זמינים</h2>
+  <table class="mefarshim-table">
+    <tr><th>קטגוריה</th><th>מפרשים</th></tr>
+    <tr><td><strong>פשט</strong></td><td>רש"י, רמב"ן, אבן עזרא, ספורנו, רשב"ם, אור החיים, חזקוני, רבינו בחיי, בכור שור, דעת זקנים, כלי יקר, מלבי"ם, רש"ר הירש, העמק דבר, אברבנאל, הכתב והקבלה, מנחת שי, רלב"ג, שפתי חכמים, טור הארוך, אלשיך, עקידת יצחק</td></tr>
+    <tr><td><strong>חסידות</strong></td><td>שפת אמת, מי השילוח, קדושת לוי, נועם אלימלך, תולדות יעקב יוסף, דגל מחנה אפרים, מאור ושמש, אוהב ישראל, תפארת שלמה, בת עין, ליקוטי מוהר"ן, פרי צדיק, זרע קודש, אור המאיר, ישמח משה, בן פורת יוסף, אגרא דכלה</td></tr>
+    <tr><td><strong>מוסר</strong></td><td>עקידת יצחק, שני לוחות הברית, אלשיך, קב הישר, ראשית חכמה, רבינו בחיי, רקנאטי</td></tr>
+    <tr><td><strong>מדרש</strong></td><td>תנחומא, תנחומא בובר, ויקרא רבה, שמות רבה, במדבר רבה, מדרש אגדה, ספרא, ילקוט שמעוני, זוהר</td></tr>
+    <tr><td><strong>ביקורת המקרא</strong></td><td>שד"ל, דוד צבי הופמן, רג'יו</td></tr>
+  </table>
+
+  <h2>התקנה והפעלה</h2>
+
+  <h3>דרישות מקדימות</h3>
+  <ul>
+    <li>Python 3.12+</li>
+    <li>Node.js 18+</li>
+    <li><a href="https://docs.anthropic.com/en/docs/claude-code" style="color:#f59e0b">Claude Code CLI</a> מותקן ומחובר</li>
+    <li>WeasyPrint system deps</li>
+  </ul>
+
+  <h3>Backend</h3>
+  <div class="code-block">
+<span class="comment"># Clone the repo</span>
+git clone https://github.com/OshriNap/dvar-tora.git
+cd dvar-tora
+
+<span class="comment"># Setup Python backend</span>
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+  </div>
+
+  <h3>Frontend</h3>
+  <div class="code-block">
+cd frontend
+npm install
+  </div>
+
+  <h3>הפעלה</h3>
+  <div class="code-block">
+<span class="comment"># Start both servers</span>
+./scripts/run-server.sh
+
+<span class="comment"># Install Thursday cron (auto-collect every Thursday 08:00)</span>
+./scripts/install-cron.sh
+
+<span class="comment"># Manual data collection</span>
+cd backend && python -m cron.weekly_prep
+  </div>
+
+  <h2>ארכיטקטורה</h2>
+  <div class="diagram">
+    <pre>
+┌─────────────────────────────────────────────────────────┐
+│                    יום חמישי 08:00                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
+│  │ RSS News │  │ Hebcal   │  │ Sefaria  │  │ Claude  │ │
+│  │ 6 sources│  │ Parasha  │  │ Mefarshim│  │ Themes  │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬────┘ │
+│       └──────────────┴─────────────┴─────────────┘      │
+│                         ↓                                │
+│                    ┌─────────┐                           │
+│                    │ SQLite  │                           │
+│                    └────┬────┘                           │
+│                         ↓                                │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │              FastAPI Backend :8085                │   │
+│  │   /api/parasha  /api/dvar-tora  /api/pdf         │   │
+│  └───────────────────────┬──────────────────────────┘   │
+│                          ↓                               │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │          React Frontend (Vite) :5173             │   │
+│  │  ConnectionMap → Suggestions → Editor → PDF      │   │
+│  └──────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+
+  <h2>טכנולוגיות</h2>
+  <div class="tech-grid">
+    <div class="tech-item">Python</div>
+    <div class="tech-item">FastAPI</div>
+    <div class="tech-item">SQLite</div>
+    <div class="tech-item">React</div>
+    <div class="tech-item">TypeScript</div>
+    <div class="tech-item">Vite</div>
+    <div class="tech-item">Tailwind CSS</div>
+    <div class="tech-item">Tiptap</div>
+    <div class="tech-item">WeasyPrint</div>
+    <div class="tech-item">Claude CLI</div>
+    <div class="tech-item">Sefaria API</div>
+    <div class="tech-item">Hebcal API</div>
+  </div>
+
+</div>
+
+<footer>
+  <p>נבנה עם ❤️ ובינה מלאכותית</p>
+  <p style="margin-top: 10px;"><a href="https://github.com/OshriNap/dvar-tora">GitHub Repository</a></p>
+</footer>
+
+</body>
+</html>
