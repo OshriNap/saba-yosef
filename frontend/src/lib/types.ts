@@ -59,3 +59,12 @@ export interface DvarTora {
 }
 
 export type MefarshimCategory = 'pshat' | 'hasidic' | 'mussar' | 'midrash' | 'bikoret' | 'mixed'
+
+export interface MefarshimResult {
+  mefaresh: string
+  ref: string
+  summary: string
+  original_text: string
+  source: 'db' | 'new'
+  selected: boolean
+}
