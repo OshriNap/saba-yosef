@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import parasha, news, dvar_tora, pdf, settings
+from app.api import parasha, news, dvar_tora, pdf, settings, mefarshim
 from app.database import init_db
 
 app = FastAPI(title="Saba Yosef — Dvar Torah Agent")
@@ -25,3 +25,4 @@ app.include_router(news.router)
 app.include_router(dvar_tora.router)
 app.include_router(pdf.router)
 app.include_router(settings.router)
+app.include_router(mefarshim.router)
