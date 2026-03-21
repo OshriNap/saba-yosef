@@ -330,14 +330,15 @@ class ClaudeCLI:
             f"- {t.get('title', '')}: {t.get('description', '')}" for t in themes
         ) or "לא נבחרו נושאי פרשה"
         mefarshim_section = ""
-        original_texts = {}  # mefaresh+ref -> original text
+        indexed_texts = []  # list of {mefaresh, ref, text} indexed by position
         for mefaresh, texts in mefarshim_texts.items():
             mefarshim_section += f"\n### {mefaresh}\n"
             for t in texts[:5]:
                 ref = t.get("ref", "")
-                text = t.get("text", "")[:200]
-                mefarshim_section += f"- {ref}: {text}\n"
-                original_texts[f"{mefaresh}||{ref}"] = t.get("text", "")
+                full_text = t.get("text", "")
+                idx = len(indexed_texts)
+                mefarshim_section += f"- [{idx}] {ref}: {full_text[:200]}\n"
+                indexed_texts.append({"mefaresh": mefaresh, "ref": ref, "text": full_text})
 
         # Phase 1: Summarize existing mefarshim
         prompt = MEFARSHIM_RESEARCH_PROMPT.format(
@@ -356,13 +357,22 @@ class ClaudeCLI:
 
         # Yield phase 1 results
         for s in data.get("summaries", []):
-            key = f"{s.get('mefaresh', '')}||{s.get('ref', '')}"
+            idx = s.get("index")
+            if idx is not None and 0 <= idx < len(indexed_texts):
+                orig_entry = indexed_texts[idx]
+                orig_text = orig_entry["text"]
+                mefaresh_name = orig_entry["mefaresh"]
+                ref = orig_entry["ref"]
+            else:
+                orig_text = ""
+                mefaresh_name = s.get("mefaresh", "")
+                ref = s.get("ref", "")
             yield {
                 "type": "mefaresh",
-                "mefaresh": s.get("mefaresh", ""),
-                "ref": s.get("ref", ""),
+                "mefaresh": mefaresh_name,
+                "ref": ref,
                 "summary": s.get("summary", ""),
-                "original_text": original_texts.get(key, ""),
+                "original_text": orig_text,
                 "source": "db",
             }
 
