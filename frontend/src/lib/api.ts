@@ -53,7 +53,14 @@ export const api = {
 
   streamSuggestionsFocused: async (
     collectionId: number,
-    selection: { selectedNews: number[]; selectedThemes: number[]; customNews: string[]; customThemes: string[] },
+    selection: {
+      selectedNews: number[]
+      selectedThemes: number[]
+      customNews: string[]
+      customThemes: string[]
+      style?: { tone: string; audience: string; length: string; approach: string }
+      mefarshimSummaries?: { mefaresh: string; ref: string; summary: string }[]
+    },
     onChunk: (text: string) => void,
     onDone: (suggestions: DvarToraSuggestion[]) => void,
     onHeartbeat?: () => void,
@@ -66,6 +73,12 @@ export const api = {
         selected_themes: selection.selectedThemes,
         custom_news: selection.customNews,
         custom_themes: selection.customThemes,
+        style: selection.style || null,
+        mefarshim_summaries: (selection.mefarshimSummaries || []).map(m => ({
+          mefaresh: m.mefaresh,
+          ref: m.ref,
+          summary: m.summary,
+        })),
       }),
     })
     const reader = resp.body!.getReader()

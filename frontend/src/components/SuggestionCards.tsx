@@ -38,6 +38,12 @@ export function SuggestionCards({ collection, selection, selectedMefarshim, onSe
         selectedThemes: selection.selectedThemes,
         customNews: selection.customNews,
         customThemes: selection.customThemes,
+        style: selection.style,
+        mefarshimSummaries: selectedMefarshim.map(m => ({
+          mefaresh: m.mefaresh,
+          ref: m.ref,
+          summary: m.summary,
+        })),
       },
       (chunk) => {
         setThinking(false)

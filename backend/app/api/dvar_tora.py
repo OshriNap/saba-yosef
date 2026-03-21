@@ -49,12 +49,29 @@ class StylePreferences(BaseModel):
     length: str = ""     # קצר (3 דק), בינוני (5-7 דק), ארוך (10+ דק)
     approach: str = ""   # אנליטי, סיפורי, דרשני, שיחתי
 
+class MefarshimSummary(BaseModel):
+    mefaresh: str = ""
+    ref: str = ""
+    summary: str = ""
+
 class SelectionContext(BaseModel):
     selected_news: list[int] = []
     selected_themes: list[int] = []
     custom_news: list[str] = []
     custom_themes: list[str] = []
     style: StylePreferences | None = None
+    mefarshim_summaries: list[MefarshimSummary] = []
+
+def _build_focused_mefarshim(ctx: SelectionContext, collection: WeeklyCollection) -> dict:
+    """Use pre-researched mefarshim summaries if available, otherwise fall back to collection."""
+    if ctx.mefarshim_summaries:
+        focused = {}
+        for s in ctx.mefarshim_summaries:
+            if s.mefaresh not in focused:
+                focused[s.mefaresh] = []
+            focused[s.mefaresh].append({"ref": s.ref, "text": s.summary})
+        return focused
+    return collection.mefarshim_texts
 
 @router.post("/suggestions/{collection_id}/generate-from-selection")
 async def generate_from_selection(collection_id: int, ctx: SelectionContext, session: Session = Depends(get_session)):
@@ -84,7 +101,7 @@ async def generate_from_selection(collection_id: int, ctx: SelectionContext, ses
         news_items=focused_news,
         themes=focused_themes,
         connections=connections,
-        mefarshim_texts=collection.mefarshim_texts,
+        mefarshim_texts=_build_focused_mefarshim(ctx, collection),
         style=ctx.style.model_dump() if ctx.style else None,
     )
 
@@ -195,7 +212,7 @@ async def stream_from_selection(collection_id: int, ctx: SelectionContext, sessi
             news_items=focused_news,
             themes=focused_themes,
             connections=connections,
-            mefarshim_texts=collection.mefarshim_texts,
+            mefarshim_texts=_build_focused_mefarshim(ctx, collection),
             style=ctx.style.model_dump() if ctx.style else None,
         ):
             if chunk == "":
