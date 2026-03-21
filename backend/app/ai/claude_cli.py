@@ -9,18 +9,25 @@ from app.ai.prompts import (
     EXPAND_PROMPT_TEMPLATE,
     CHAT_PROMPT_TEMPLATE,
     THEMES_PROMPT_TEMPLATE,
+    MEFARSHIM_RESEARCH_PROMPT,
+    MEFARSHIM_SUMMARIZE_NEW_PROMPT,
 )
 
 
+CLAUDE_BIN = "/home/oshrin/.local/bin/claude"
+
+
 class ClaudeCLI:
-    def _build_cmd(self, prompt: str, session_id: str | None = None) -> list[str]:
-        cmd = ["claude", "--print", "-p", prompt]
+    def _build_cmd(self, prompt: str, session_id: str | None = None, model: str | None = None) -> list[str]:
+        cmd = [CLAUDE_BIN, "--print", "-p", prompt]
         if session_id:
-            cmd = ["claude", "--print", "--session-id", session_id, "-p", prompt]
+            cmd = [CLAUDE_BIN, "--print", "--session-id", session_id, "-p", prompt]
+        if model:
+            cmd.extend(["--model", model])
         return cmd
 
-    async def _run_claude(self, prompt: str, session_id: str | None = None) -> str:
-        cmd = self._build_cmd(prompt, session_id)
+    async def _run_claude(self, prompt: str, session_id: str | None = None, model: str | None = None) -> str:
+        cmd = self._build_cmd(prompt, session_id, model=model)
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
