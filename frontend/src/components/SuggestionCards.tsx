@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from 'react'
 import { api } from '../lib/api'
-import { MefarshimPicker } from './MefarshimPicker'
-import type { WeeklyCollection, DvarTora, DvarToraSuggestion, MefarshimCategory } from '../lib/types'
+import type { WeeklyCollection, DvarTora, DvarToraSuggestion, MefarshimResult } from '../lib/types'
 import type { UserSelection } from '../App'
 
-export function SuggestionCards({ collection, selection, onSelect, onBack }: {
+export function SuggestionCards({ collection, selection, selectedMefarshim, onSelect, onBack }: {
   collection: WeeklyCollection
   selection: UserSelection
+  selectedMefarshim: MefarshimResult[]
   onSelect: (dvar: DvarTora) => void
   onBack: () => void
 }) {
@@ -17,7 +17,6 @@ export function SuggestionCards({ collection, selection, onSelect, onBack }: {
   const [expanding, setExpanding] = useState<number | null>(null)
   const [expandText, setExpandText] = useState('')
   const [expandThinking, setExpandThinking] = useState(false)
-  const [category, setCategory] = useState<MefarshimCategory>('pshat')
   const streamRef = useRef<HTMLDivElement>(null)
   const expandRef = useRef<HTMLDivElement>(null)
 
@@ -84,7 +83,6 @@ export function SuggestionCards({ collection, selection, onSelect, onBack }: {
     <div className="max-w-4xl mx-auto p-6">
       <button onClick={onBack} className="text-blue-600 mb-4 hover:underline">→ חזרה</button>
       <h2 className="text-3xl font-serif font-bold mb-6">הצעות לדבר תורה — {collection.parasha_name}</h2>
-      <MefarshimPicker selected={category} onChange={setCategory} />
 
       {suggestions.length === 0 && !loading && (
         <div className="text-center py-10">

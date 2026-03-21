@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { ConnectionDashboard } from './components/ConnectionDashboard'
 import { StylePicker, type StylePrefs } from './components/StylePicker'
 import { SuggestionCards } from './components/SuggestionCards'
+import { MefarshimResearch } from './components/MefarshimResearch'
 import { DvarToraEditor } from './components/Editor/DvarToraEditor'
 import { Settings } from './components/Settings'
-import type { WeeklyCollection, DvarTora } from './lib/types'
+import type { WeeklyCollection, DvarTora, MefarshimResult } from './lib/types'
 
-type View = 'dashboard' | 'style' | 'suggestions' | 'editor'
+type View = 'dashboard' | 'style' | 'mefarshim' | 'suggestions' | 'editor'
 
 export interface UserSelection {
   selectedNews: number[]
@@ -21,6 +22,7 @@ export default function App() {
   const [collection, setCollection] = useState<WeeklyCollection | null>(null)
   const [selection, setSelection] = useState<UserSelection | null>(null)
   const [dvarTora, setDvarTora] = useState<DvarTora | null>(null)
+  const [mefarshimResults, setMefarshimResults] = useState<MefarshimResult[]>([])
   const [showSettings, setShowSettings] = useState(false)
 
   return (
@@ -46,17 +48,29 @@ export default function App() {
         <StylePicker
           onConfirm={(style) => {
             setSelection(prev => prev ? { ...prev, style } : null)
-            setView('suggestions')
+            setView('mefarshim')
           }}
           onBack={() => setView('dashboard')}
+        />
+      )}
+      {view === 'mefarshim' && collection && selection && (
+        <MefarshimResearch
+          collection={collection}
+          selection={selection}
+          onComplete={(mefarshim) => {
+            setMefarshimResults(mefarshim)
+            setView('suggestions')
+          }}
+          onBack={() => setView('style')}
         />
       )}
       {view === 'suggestions' && collection && selection && (
         <SuggestionCards
           collection={collection}
           selection={selection}
+          selectedMefarshim={mefarshimResults}
           onSelect={(dvar) => { setDvarTora(dvar); setView('editor') }}
-          onBack={() => setView('style')}
+          onBack={() => setView('mefarshim')}
         />
       )}
       {view === 'editor' && dvarTora && collection && (
