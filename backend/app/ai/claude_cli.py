@@ -311,3 +311,122 @@ class ClaudeCLI:
             user_request=user_request,
         )
         return await self._run_claude(prompt, session_id=session_id)
+
+    async def stream_mefarshim_research(
+        self,
+        parasha_name: str,
+        news_items: list[dict],
+        themes: list[dict],
+        mefarshim_texts: dict[str, list[dict]],
+    ) -> AsyncGenerator[dict, None]:
+        """Two-phase mefarshim research: summarize DB texts, then fetch+summarize new ones."""
+        from app.collectors.parasha_collector import ParashaCollector
+
+        # Build prompt sections
+        news_section = "\n".join(
+            f"- {item.get('title', '')}: {item.get('summary', '')}" for item in news_items
+        ) or "לא נבחרו חדשות"
+        themes_section = "\n".join(
+            f"- {t.get('title', '')}: {t.get('description', '')}" for t in themes
+        ) or "לא נבחרו נושאי פרשה"
+        mefarshim_section = ""
+        original_texts = {}  # mefaresh+ref -> original text
+        for mefaresh, texts in mefarshim_texts.items():
+            mefarshim_section += f"\n### {mefaresh}\n"
+            for t in texts[:5]:
+                ref = t.get("ref", "")
+                text = t.get("text", "")[:200]
+                mefarshim_section += f"- {ref}: {text}\n"
+                original_texts[f"{mefaresh}||{ref}"] = t.get("text", "")
+
+        # Phase 1: Summarize existing mefarshim
+        prompt = MEFARSHIM_RESEARCH_PROMPT.format(
+            parasha_name=parasha_name,
+            news_section=news_section,
+            themes_section=themes_section,
+            mefarshim_section=mefarshim_section or "אין מפרשים במאגר לקטגוריות שנבחרו",
+        )
+        raw = await self._run_claude(prompt, model="haiku")
+        try:
+            start = raw.index("{")
+            end = raw.rindex("}") + 1
+            data = json.loads(raw[start:end])
+        except (ValueError, json.JSONDecodeError):
+            data = {"summaries": [], "additional_refs": []}
+
+        # Yield phase 1 results
+        for s in data.get("summaries", []):
+            key = f"{s.get('mefaresh', '')}||{s.get('ref', '')}"
+            yield {
+                "type": "mefaresh",
+                "mefaresh": s.get("mefaresh", ""),
+                "ref": s.get("ref", ""),
+                "summary": s.get("summary", ""),
+                "original_text": original_texts.get(key, ""),
+                "source": "db",
+            }
+
+        # Phase 2: Fetch additional references
+        additional_refs = data.get("additional_refs", [])[:5]
+        if additional_refs:
+            yield {"type": "phase", "phase": "fetching_additional", "count": len(additional_refs)}
+
+            collector = ParashaCollector()
+            try:
+                import asyncio
+
+                async def fetch_ref(ref_info: dict) -> list[dict]:
+                    """Fetch a single commentary ref from Sefaria."""
+                    mefaresh = ref_info["mefaresh"]
+                    ref = ref_info["ref"]
+                    return await collector.get_commentary(ref, mefaresh)
+
+                tasks = [fetch_ref(ref) for ref in additional_refs]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                new_texts = []
+                for ref_info, result in zip(additional_refs, results):
+                    if isinstance(result, Exception) or not result:
+                        continue
+                    for t in result[:3]:
+                        new_texts.append(t)
+
+                if new_texts:
+                    # Summarize new texts
+                    new_texts_section = ""
+                    for t in new_texts:
+                        new_texts_section += f"- {t.get('mefaresh', '')} ({t.get('ref', '')}): {t.get('text', '')[:200]}\n"
+
+                    prompt2 = MEFARSHIM_SUMMARIZE_NEW_PROMPT.format(
+                        news_section=news_section,
+                        themes_section=themes_section,
+                        new_texts_section=new_texts_section,
+                    )
+                    raw2 = await self._run_claude(prompt2, model="haiku")
+                    try:
+                        start2 = raw2.index("{")
+                        end2 = raw2.rindex("}") + 1
+                        data2 = json.loads(raw2[start2:end2])
+                    except (ValueError, json.JSONDecodeError):
+                        data2 = {"summaries": []}
+
+                    # Build lookup for original texts
+                    new_originals = {}
+                    for t in new_texts:
+                        key = f"{t.get('mefaresh', '')}||{t.get('ref', '')}"
+                        new_originals[key] = t.get("text", "")
+
+                    for s in data2.get("summaries", []):
+                        key = f"{s.get('mefaresh', '')}||{s.get('ref', '')}"
+                        yield {
+                            "type": "mefaresh",
+                            "mefaresh": s.get("mefaresh", ""),
+                            "ref": s.get("ref", ""),
+                            "summary": s.get("summary", ""),
+                            "original_text": new_originals.get(key, ""),
+                            "source": "new",
+                        }
+            finally:
+                await collector.close()
+
+        yield {"type": "done"}
