@@ -37,3 +37,13 @@ class DvarTora(SQLModel, table=True):
     content: str = ""
     status: str = "draft"  # draft, final
     sources: list[dict] = Field(default=[], sa_column=Column(JSON))
+
+class RhetoricStrategy(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    key: str = ""
+    name: str
+    description: str
+    structure_template: str
+    example: str = ""
+    is_custom: bool = False
+    display_order: int = 0

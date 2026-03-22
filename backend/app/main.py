@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import parasha, news, dvar_tora, pdf, settings, mefarshim
-from app.database import init_db
+from app.database import init_db, seed_rhetoric_strategies
 
 app = FastAPI(title="Saba Yosef — Dvar Torah Agent")
 
@@ -15,6 +15,7 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     init_db()
+    seed_rhetoric_strategies()
 
 @app.get("/api/health")
 def health():
