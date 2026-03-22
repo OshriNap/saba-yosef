@@ -44,6 +44,13 @@ export function SuggestionCards({ collection, selection, selectedMefarshim, onSe
           ref: m.ref,
           summary: m.summary,
         })),
+        rhetoricSequence: selection.rhetoricSequence?.map(s => ({
+          name: s.name,
+          description: s.description,
+          structure_template: s.structure_template,
+        })),
+        punchline: selection.punchline,
+        beats: selection.beats,
       },
       (chunk) => {
         setThinking(false)

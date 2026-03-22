@@ -60,6 +60,9 @@ export const api = {
       customThemes: string[]
       style?: { tone: string; audience: string; length: string; approach: string }
       mefarshimSummaries?: { mefaresh: string; ref: string; summary: string }[]
+      rhetoricSequence?: { name: string; description: string; structure_template: string }[]
+      punchline?: string
+      beats?: { strategy_name: string; beat: string }[]
     },
     onChunk: (text: string) => void,
     onDone: (suggestions: DvarToraSuggestion[]) => void,
@@ -79,6 +82,9 @@ export const api = {
           ref: m.ref,
           summary: m.summary,
         })),
+        rhetoric_sequence: selection.rhetoricSequence || [],
+        punchline: selection.punchline || '',
+        beats: selection.beats || [],
       }),
     })
     const reader = resp.body!.getReader()

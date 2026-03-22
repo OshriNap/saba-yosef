@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { ConnectionDashboard } from './components/ConnectionDashboard'
+import { RhetoricPunchline } from './components/RhetoricPunchline'
 import { StylePicker, type StylePrefs } from './components/StylePicker'
 import { SuggestionCards } from './components/SuggestionCards'
 import { MefarshimResearch } from './components/MefarshimResearch'
 import { DvarToraEditor } from './components/Editor/DvarToraEditor'
 import { Settings } from './components/Settings'
-import type { WeeklyCollection, DvarTora, MefarshimResult } from './lib/types'
+import type { WeeklyCollection, DvarTora, MefarshimResult, RhetoricStrategy, DrashaBeat } from './lib/types'
 
-type View = 'dashboard' | 'style' | 'mefarshim' | 'suggestions' | 'editor'
+type View = 'dashboard' | 'rhetoric' | 'style' | 'mefarshim' | 'suggestions' | 'editor'
 
 export interface UserSelection {
   selectedNews: number[]
@@ -15,6 +16,9 @@ export interface UserSelection {
   customNews: string[]
   customThemes: string[]
   style?: StylePrefs
+  rhetoricSequence?: RhetoricStrategy[]
+  punchline?: string
+  beats?: DrashaBeat[]
 }
 
 export default function App() {
@@ -41,8 +45,19 @@ export default function App() {
         <ConnectionDashboard onProceed={(c, sn, st, cn, ct) => {
           setCollection(c)
           setSelection({ selectedNews: sn, selectedThemes: st, customNews: cn, customThemes: ct })
-          setView('style')
+          setView('rhetoric')
         }} />
+      )}
+      {view === 'rhetoric' && collection && selection && (
+        <RhetoricPunchline
+          collection={collection}
+          selection={selection}
+          onComplete={(rhetoric, punchline, beats) => {
+            setSelection(prev => prev ? { ...prev, rhetoricSequence: rhetoric, punchline, beats } : null)
+            setView('style')
+          }}
+          onBack={() => setView('dashboard')}
+        />
       )}
       {view === 'style' && collection && selection && (
         <StylePicker
@@ -50,7 +65,7 @@ export default function App() {
             setSelection(prev => prev ? { ...prev, style } : null)
             setView('mefarshim')
           }}
-          onBack={() => setView('dashboard')}
+          onBack={() => setView('rhetoric')}
         />
       )}
       {view === 'mefarshim' && collection && selection && (

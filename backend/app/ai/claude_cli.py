@@ -133,6 +133,9 @@ class ClaudeCLI:
         connections: list[dict],
         mefarshim_texts: dict[str, list[dict]],
         style: dict | None = None,
+        rhetoric_sequence: list[dict] | None = None,
+        punchline: str = "",
+        beats: list[dict] | None = None,
     ) -> str:
         news_section = "\n".join(
             f"- {item.get('title', '')}: {item.get('summary', '')}" for item in news_items
@@ -157,7 +160,7 @@ class ClaudeCLI:
             if style.get("approach"): parts.append(f"גישה: {style['approach']}")
             if parts:
                 style_section = "\n".join(parts)
-        return FOCUSED_SUGGESTION_PROMPT_TEMPLATE.format(
+        result = FOCUSED_SUGGESTION_PROMPT_TEMPLATE.format(
             parasha_name=parasha_name,
             parasha_text=parasha_text[:2000],
             news_section=news_section,
@@ -166,6 +169,25 @@ class ClaudeCLI:
             mefarshim_section=mefarshim_section,
             style_section=style_section,
         )
+        # Append rhetoric context if provided (after formatting the template)
+        if rhetoric_sequence or punchline:
+            rhetoric_parts = []
+            if punchline:
+                rhetoric_parts.append(f"## פאנצ'ליין (המסר המרכזי)\n{punchline}")
+            if rhetoric_sequence:
+                seq = "\n".join(
+                    f"{i+1}. **{s.get('name', '')}**: {s.get('structure_template', '')}"
+                    for i, s in enumerate(rhetoric_sequence)
+                )
+                rhetoric_parts.append(f"## רצף רטורי\n{seq}")
+            if beats:
+                beats_text = "\n".join(
+                    f"- {b.get('strategy_name', '')}: {b.get('beat', '')}" for b in beats
+                )
+                rhetoric_parts.append(f"## ביטים\n{beats_text}")
+            rhetoric_parts.append("## הנחיה נוספת\nהתאם את ההצעות לפאנצ'ליין ולרצף הרטורי שלמעלה. כל הצעה צריכה לבנות את הדרשה לכיוון הפאנצ'ליין.")
+            result += "\n\n" + "\n\n".join(rhetoric_parts)
+        return result
 
     async def generate_suggestions_focused(
         self,
@@ -176,9 +198,13 @@ class ClaudeCLI:
         connections: list[dict],
         mefarshim_texts: dict[str, list[dict]],
         style: dict | None = None,
+        rhetoric_sequence: list[dict] | None = None,
+        punchline: str = "",
+        beats: list[dict] | None = None,
     ) -> list[dict]:
         prompt = self._build_focused_prompt(
             parasha_name, parasha_text, news_items, themes, connections, mefarshim_texts, style,
+            rhetoric_sequence, punchline, beats,
         )
         raw = await self._run_claude(prompt)
         try:
@@ -198,9 +224,13 @@ class ClaudeCLI:
         connections: list[dict],
         mefarshim_texts: dict[str, list[dict]],
         style: dict | None = None,
+        rhetoric_sequence: list[dict] | None = None,
+        punchline: str = "",
+        beats: list[dict] | None = None,
     ) -> AsyncGenerator[str, None]:
         prompt = self._build_focused_prompt(
             parasha_name, parasha_text, news_items, themes, connections, mefarshim_texts, style,
+            rhetoric_sequence, punchline, beats,
         )
         async for chunk in self._stream_claude(prompt):
             yield chunk

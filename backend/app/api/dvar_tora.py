@@ -61,6 +61,9 @@ class SelectionContext(BaseModel):
     custom_themes: list[str] = []
     style: StylePreferences | None = None
     mefarshim_summaries: list[MefarshimSummary] = []
+    rhetoric_sequence: list[dict] = []
+    punchline: str = ""
+    beats: list[dict] = []
 
 def _build_focused_mefarshim(ctx: SelectionContext, collection: WeeklyCollection) -> dict:
     """Use pre-researched mefarshim summaries if available, otherwise fall back to collection."""
@@ -103,6 +106,9 @@ async def generate_from_selection(collection_id: int, ctx: SelectionContext, ses
         connections=connections,
         mefarshim_texts=_build_focused_mefarshim(ctx, collection),
         style=ctx.style.model_dump() if ctx.style else None,
+        rhetoric_sequence=ctx.rhetoric_sequence if ctx.rhetoric_sequence else None,
+        punchline=ctx.punchline,
+        beats=ctx.beats if ctx.beats else None,
     )
 
     result = []
@@ -214,6 +220,9 @@ async def stream_from_selection(collection_id: int, ctx: SelectionContext, sessi
             connections=connections,
             mefarshim_texts=_build_focused_mefarshim(ctx, collection),
             style=ctx.style.model_dump() if ctx.style else None,
+            rhetoric_sequence=ctx.rhetoric_sequence if ctx.rhetoric_sequence else None,
+            punchline=ctx.punchline,
+            beats=ctx.beats if ctx.beats else None,
         ):
             if chunk == "":
                 yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
