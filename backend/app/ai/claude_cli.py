@@ -11,6 +11,8 @@ from app.ai.prompts import (
     THEMES_PROMPT_TEMPLATE,
     MEFARSHIM_RESEARCH_PROMPT,
     MEFARSHIM_SUMMARIZE_NEW_PROMPT,
+    PUNCHLINE_PROMPT,
+    BEATS_PROMPT,
 )
 
 
@@ -440,3 +442,69 @@ class ClaudeCLI:
                 await collector.close()
 
         yield {"type": "done"}
+
+    async def generate_punchlines(
+        self,
+        news_items: list[dict],
+        themes: list[dict],
+        rhetoric_sequence: list[dict],
+    ) -> list[str]:
+        """Generate 3-5 punchline suggestions using Sonnet."""
+        news_section = "\n".join(
+            f"- {item.get('title', '')}: {item.get('summary', '')}" for item in news_items
+        ) or "לא נבחרו חדשות"
+        themes_section = "\n".join(
+            f"- {t.get('title', '')}: {t.get('description', '')}" for t in themes
+        ) or "לא נבחרו נושאי פרשה"
+        rhetoric_section = "\n".join(
+            f"{i+1}. **{s.get('name', '')}**: {s.get('description', '')} — מבנה: {s.get('structure_template', '')}"
+            for i, s in enumerate(rhetoric_sequence)
+        ) or "לא נבחרו אסטרטגיות"
+
+        prompt = PUNCHLINE_PROMPT.format(
+            news_section=news_section,
+            themes_section=themes_section,
+            rhetoric_section=rhetoric_section,
+        )
+        raw = await self._run_claude(prompt)  # Sonnet (default)
+        try:
+            start = raw.index("{")
+            end = raw.rindex("}") + 1
+            data = json.loads(raw[start:end])
+            return data.get("punchlines", [])
+        except (ValueError, json.JSONDecodeError):
+            return [raw[:200]]
+
+    async def generate_beats(
+        self,
+        punchline: str,
+        news_items: list[dict],
+        themes: list[dict],
+        rhetoric_sequence: list[dict],
+    ) -> list[dict]:
+        """Generate a beat per strategy step using Sonnet."""
+        news_section = "\n".join(
+            f"- {item.get('title', '')}: {item.get('summary', '')}" for item in news_items
+        ) or "לא נבחרו חדשות"
+        themes_section = "\n".join(
+            f"- {t.get('title', '')}: {t.get('description', '')}" for t in themes
+        ) or "לא נבחרו נושאי פרשה"
+        rhetoric_section = "\n".join(
+            f"{i+1}. **{s.get('name', '')}**: {s.get('description', '')} — מבנה: {s.get('structure_template', '')}"
+            for i, s in enumerate(rhetoric_sequence)
+        ) or "לא נבחרו אסטרטגיות"
+
+        prompt = BEATS_PROMPT.format(
+            punchline=punchline,
+            news_section=news_section,
+            themes_section=themes_section,
+            rhetoric_section=rhetoric_section,
+        )
+        raw = await self._run_claude(prompt)  # Sonnet (default)
+        try:
+            start = raw.index("{")
+            end = raw.rindex("}") + 1
+            data = json.loads(raw[start:end])
+            return data.get("beats", [])
+        except (ValueError, json.JSONDecodeError):
+            return []
