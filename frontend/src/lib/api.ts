@@ -1,4 +1,4 @@
-import type { WeeklyCollection, DvarToraSuggestion, DvarTora, MefarshimResult } from './types'
+import type { WeeklyCollection, DvarToraSuggestion, DvarTora, MefarshimResult, RhetoricStrategy, DrashaBeat } from './types'
 
 const BASE = import.meta.env.BASE_URL + 'api'
 
@@ -145,6 +145,89 @@ export const api = {
         if (data.type === 'mefaresh') onResult({ ...data, selected: true })
         else if (data.type === 'phase') onPhase(data.phase, data.count)
         else if (data.type === 'done') onDone()
+      }
+    }
+  },
+
+  getRhetoricStrategies: () =>
+    fetchJSON<RhetoricStrategy[]>('/rhetoric/'),
+
+  createRhetoricStrategy: (data: { name: string; description: string; structure_template: string; example?: string }) =>
+    fetchJSON<RhetoricStrategy>('/rhetoric/', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateRhetoricStrategy: (id: number, data: Partial<RhetoricStrategy>) =>
+    fetchJSON<RhetoricStrategy>(`/rhetoric/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  deleteRhetoricStrategy: (id: number) =>
+    fetchJSON<{ ok: boolean }>(`/rhetoric/${id}`, { method: 'DELETE' }),
+
+  streamPunchlines: async (
+    collectionId: number,
+    request: {
+      selected_news: number[]
+      selected_themes: number[]
+      custom_news: string[]
+      custom_themes: string[]
+      rhetoric_sequence: { name: string; description: string; structure_template: string }[]
+    },
+    onDone: (punchlines: string[]) => void,
+    onHeartbeat?: () => void,
+  ) => {
+    const resp = await fetch(`${BASE}/rhetoric/${collectionId}/punchlines`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+    const reader = resp.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const data = JSON.parse(line.slice(6))
+        if (data.type === 'heartbeat') onHeartbeat?.()
+        else if (data.type === 'done') onDone(data.punchlines)
+      }
+    }
+  },
+
+  streamBeats: async (
+    collectionId: number,
+    request: {
+      punchline: string
+      selected_news: number[]
+      selected_themes: number[]
+      custom_news: string[]
+      custom_themes: string[]
+      rhetoric_sequence: { name: string; description: string; structure_template: string }[]
+    },
+    onDone: (beats: DrashaBeat[]) => void,
+    onHeartbeat?: () => void,
+  ) => {
+    const resp = await fetch(`${BASE}/rhetoric/${collectionId}/beats`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+    const reader = resp.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const data = JSON.parse(line.slice(6))
+        if (data.type === 'heartbeat') onHeartbeat?.()
+        else if (data.type === 'done') onDone(data.beats)
       }
     }
   },

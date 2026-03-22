@@ -68,3 +68,19 @@ export interface MefarshimResult {
   source: 'db' | 'new'
   selected: boolean
 }
+
+export interface RhetoricStrategy {
+  id: number
+  key: string
+  name: string
+  description: string
+  structure_template: string
+  example: string
+  is_custom: boolean
+  display_order: number
+}
+
+export interface DrashaBeat {
+  strategy_name: string
+  beat: string
+}
