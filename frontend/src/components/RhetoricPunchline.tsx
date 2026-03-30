@@ -11,10 +11,11 @@ interface RhetoricPunchlineProps {
     customThemes: string[]
   }
   onComplete: (rhetoric: RhetoricStrategy[], punchline: string, beats: DrashaBeat[]) => void
+  onBuildFlow: (rhetoric: RhetoricStrategy[], punchline: string) => void
   onBack: () => void
 }
 
-export function RhetoricPunchline({ collection, selection, onComplete, onBack }: RhetoricPunchlineProps) {
+export function RhetoricPunchline({ collection, selection, onComplete, onBuildFlow, onBack }: RhetoricPunchlineProps) {
   const [strategies, setStrategies] = useState<RhetoricStrategy[]>([])
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [punchlines, setPunchlines] = useState<string[]>([])
@@ -293,14 +294,20 @@ export function RhetoricPunchline({ collection, selection, onComplete, onBack }:
             </>
           )}
 
-          {/* Continue */}
+          {/* Continue — fork */}
           {activePunchline && (
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => onBuildFlow(selectedStrategies, activePunchline)}
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg hover:bg-blue-700 transition"
+              >
+                בנה את המהלך
+              </button>
               <button
                 onClick={handleContinue}
-                className="bg-green-600 text-white px-8 py-3 rounded-lg text-lg hover:bg-green-700 transition"
+                className="bg-gray-200 text-gray-700 px-8 py-3 rounded-lg text-lg hover:bg-gray-300 transition"
               >
-                המשך
+                דלג להצעות →
               </button>
             </div>
           )}
