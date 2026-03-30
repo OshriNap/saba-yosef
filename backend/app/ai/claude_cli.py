@@ -13,6 +13,9 @@ from app.ai.prompts import (
     MEFARSHIM_SUMMARIZE_NEW_PROMPT,
     PUNCHLINE_PROMPT,
     BEATS_PROMPT,
+    FLOW_GENERATE_PROMPT,
+    FLOW_REFINE_SECTION_PROMPT,
+    FLOW_REFINE_GLOBAL_PROMPT,
 )
 
 
@@ -473,6 +476,17 @@ class ClaudeCLI:
 
         yield {"type": "done"}
 
+    def _parse_json(self, raw: str) -> dict:
+        """Extract and parse JSON from Claude's response, handling markdown fences."""
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            lines = cleaned.split("\n")
+            lines = [l for l in lines if not l.strip().startswith("```")]
+            cleaned = "\n".join(lines)
+        start = cleaned.index("{")
+        end = cleaned.rindex("}") + 1
+        return json.loads(cleaned[start:end])
+
     async def generate_punchlines(
         self,
         news_items: list[dict],
@@ -497,13 +511,21 @@ class ClaudeCLI:
             rhetoric_section=rhetoric_section,
         )
         raw = await self._run_claude(prompt)  # Sonnet (default)
+        # Strip markdown code fences if present
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            lines = cleaned.split("\n")
+            # Remove first line (```json) and last line (```)
+            lines = [l for l in lines if not l.strip().startswith("```")]
+            cleaned = "\n".join(lines)
         try:
-            start = raw.index("{")
-            end = raw.rindex("}") + 1
-            data = json.loads(raw[start:end])
+            start = cleaned.index("{")
+            end = cleaned.rindex("}") + 1
+            data = json.loads(cleaned[start:end])
             return data.get("punchlines", [])
         except (ValueError, json.JSONDecodeError):
-            return [raw[:200]]
+            # Try to extract punchlines from raw text as fallback
+            return [raw.strip()[:300]]
 
     async def generate_beats(
         self,
@@ -538,3 +560,101 @@ class ClaudeCLI:
             return data.get("beats", [])
         except (ValueError, json.JSONDecodeError):
             return []
+
+    async def generate_flow(
+        self,
+        punchline: str,
+        news_items: list[dict],
+        themes: list[dict],
+        connections: list[dict],
+        rhetoric_sequence: list[dict],
+    ) -> dict:
+        """Generate a 4-6 section drasha flow."""
+        news_section = "\n".join(
+            f"{i}. {item.get('title', '')}: {item.get('summary', '')}" for i, item in enumerate(news_items)
+        ) or "לא נבחרו חדשות"
+        themes_section = "\n".join(
+            f"{i}. {t.get('title', '')}: {t.get('description', '')}" for i, t in enumerate(themes)
+        ) or "לא נבחרו נושאי פרשה"
+        connections_section = "\n".join(
+            f"- חדשה {c.get('news_index', '')} ↔ נושא {c.get('theme_index', '')}: {c.get('reason', '')}"
+            for c in connections
+        ) or "לא זוהו קשרים"
+        rhetoric_section = "\n".join(
+            f"{i+1}. **{s.get('name', '')}**: {s.get('description', '')} — מבנה: {s.get('structure_template', '')}"
+            for i, s in enumerate(rhetoric_sequence)
+        ) or "לא נבחרו אסטרטגיות"
+
+        prompt = FLOW_GENERATE_PROMPT.format(
+            punchline=punchline,
+            news_section=news_section,
+            themes_section=themes_section,
+            connections_section=connections_section,
+            rhetoric_section=rhetoric_section,
+        )
+        raw = await self._run_claude(prompt)
+        try:
+            data = self._parse_json(raw)
+            return data
+        except (ValueError, json.JSONDecodeError):
+            return {"sections": []}
+
+    async def refine_section(
+        self,
+        punchline: str,
+        flow_sections: list[dict],
+        section_index: int,
+        instruction: str,
+    ) -> dict:
+        """Refine a single section of the flow."""
+        flow_summary = "\n".join(
+            f"{i+1}. [{s.get('rhetoricalMove', '')}] {s.get('title', '')}"
+            for i, s in enumerate(flow_sections)
+        )
+        section_json = json.dumps(flow_sections[section_index], ensure_ascii=False, indent=2)
+        prev_section = json.dumps(flow_sections[section_index - 1], ensure_ascii=False, indent=2) if section_index > 0 else "אין — זה השלב הראשון"
+        next_section = json.dumps(flow_sections[section_index + 1], ensure_ascii=False, indent=2) if section_index < len(flow_sections) - 1 else "אין — זה השלב האחרון"
+
+        prompt = FLOW_REFINE_SECTION_PROMPT.format(
+            punchline=punchline,
+            flow_summary=flow_summary,
+            section_json=section_json,
+            prev_section=prev_section,
+            next_section=next_section,
+            instruction=instruction,
+        )
+        raw = await self._run_claude(prompt)
+        try:
+            return self._parse_json(raw)
+        except (ValueError, json.JSONDecodeError):
+            return flow_sections[section_index]
+
+    async def refine_flow(
+        self,
+        punchline: str,
+        news_items: list[dict],
+        themes: list[dict],
+        flow_sections: list[dict],
+        instruction: str = "",
+    ) -> dict:
+        """Refine the entire flow for coherence."""
+        news_section = "\n".join(
+            f"{i}. {item.get('title', '')}: {item.get('summary', '')}" for i, item in enumerate(news_items)
+        ) or "לא נבחרו חדשות"
+        themes_section = "\n".join(
+            f"{i}. {t.get('title', '')}: {t.get('description', '')}" for i, t in enumerate(themes)
+        ) or "לא נבחרו נושאי פרשה"
+        flow_json = json.dumps(flow_sections, ensure_ascii=False, indent=2)
+
+        prompt = FLOW_REFINE_GLOBAL_PROMPT.format(
+            punchline=punchline,
+            news_section=news_section,
+            themes_section=themes_section,
+            flow_json=flow_json,
+            instruction=instruction or "שפר את המהלך הכללי",
+        )
+        raw = await self._run_claude(prompt)
+        try:
+            return self._parse_json(raw)
+        except (ValueError, json.JSONDecodeError):
+            return {"sections": flow_sections, "changes": ""}
