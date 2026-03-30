@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import parasha, news, dvar_tora, pdf, settings, mefarshim, rhetoric
+from app.api import parasha, news, dvar_tora, pdf, settings, mefarshim, rhetoric, flow
 from app.database import init_db, seed_rhetoric_strategies
 from app.models import DrashaFlow  # noqa: F401 — ensure table is created
 
@@ -29,3 +29,4 @@ app.include_router(pdf.router)
 app.include_router(settings.router)
 app.include_router(mefarshim.router)
 app.include_router(rhetoric.router)
+app.include_router(flow.router)
