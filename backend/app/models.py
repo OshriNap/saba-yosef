@@ -47,3 +47,12 @@ class RhetoricStrategy(SQLModel, table=True):
     example: str = ""
     is_custom: bool = False
     display_order: int = 0
+
+class DrashaFlow(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    collection_id: int
+    punchline: str = ""
+    sections: list = Field(default=[], sa_column=Column(JSON))
+    total_minutes: int = 0
+    created_at: str = ""
+    updated_at: str = ""

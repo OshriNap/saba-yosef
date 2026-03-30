@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import parasha, news, dvar_tora, pdf, settings, mefarshim, rhetoric
 from app.database import init_db, seed_rhetoric_strategies
+from app.models import DrashaFlow  # noqa: F401 — ensure table is created
 
 app = FastAPI(title="Saba Yosef — Dvar Torah Agent")
 
