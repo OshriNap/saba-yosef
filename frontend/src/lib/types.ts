@@ -84,3 +84,27 @@ export interface DrashaBeat {
   strategy_name: string
   beat: string
 }
+
+export type RhetoricalMove = 'hook' | 'build' | 'surprise' | 'deepen' | 'resolve' | 'land'
+
+export interface FlowSection {
+  id: string
+  title: string
+  description: string
+  rhetoricalMove: RhetoricalMove
+  assignedNews: number[]
+  assignedThemes: number[]
+  mefareshSlot: string
+  transitionTo: string
+  estimatedMinutes: number
+}
+
+export interface DrashaFlow {
+  id?: number
+  collectionId: number
+  punchline: string
+  sections: FlowSection[]
+  totalMinutes: number
+  createdAt?: string
+  updatedAt?: string
+}

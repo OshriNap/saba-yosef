@@ -1,4 +1,4 @@
-import type { WeeklyCollection, DvarToraSuggestion, DvarTora, MefarshimResult, RhetoricStrategy, DrashaBeat } from './types'
+import type { WeeklyCollection, DvarToraSuggestion, DvarTora, MefarshimResult, RhetoricStrategy, DrashaBeat, FlowSection, DrashaFlow } from './types'
 
 const BASE = import.meta.env.BASE_URL + 'api'
 
@@ -237,4 +237,117 @@ export const api = {
       }
     }
   },
+
+  streamGenerateFlow: async (
+    collectionId: number,
+    request: {
+      punchline: string
+      rhetoric_sequence: { name: string; description: string; structure_template: string }[]
+      selected_news: number[]
+      selected_themes: number[]
+      custom_news: string[]
+      custom_themes: string[]
+    },
+    onDone: (sections: FlowSection[], totalMinutes: number) => void,
+    onHeartbeat?: () => void,
+  ) => {
+    const resp = await fetch(`${BASE}/flow/${collectionId}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+    const reader = resp.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const data = JSON.parse(line.slice(6))
+        if (data.type === 'heartbeat') onHeartbeat?.()
+        else if (data.type === 'done') onDone(data.sections, data.totalMinutes)
+      }
+    }
+  },
+
+  streamRefineSection: async (
+    collectionId: number,
+    request: {
+      punchline: string
+      sections: FlowSection[]
+      section_index: number
+      instruction: string
+    },
+    onDone: (section: FlowSection) => void,
+    onHeartbeat?: () => void,
+  ) => {
+    const resp = await fetch(`${BASE}/flow/${collectionId}/refine-section`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+    const reader = resp.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const data = JSON.parse(line.slice(6))
+        if (data.type === 'heartbeat') onHeartbeat?.()
+        else if (data.type === 'done') onDone(data.section)
+      }
+    }
+  },
+
+  streamRefineFlow: async (
+    collectionId: number,
+    request: {
+      punchline: string
+      sections: FlowSection[]
+      selected_news: number[]
+      selected_themes: number[]
+      custom_news: string[]
+      custom_themes: string[]
+      instruction?: string
+    },
+    onDone: (sections: FlowSection[], totalMinutes: number, changes: string) => void,
+    onHeartbeat?: () => void,
+  ) => {
+    const resp = await fetch(`${BASE}/flow/${collectionId}/refine-flow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+    const reader = resp.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const data = JSON.parse(line.slice(6))
+        if (data.type === 'heartbeat') onHeartbeat?.()
+        else if (data.type === 'done') onDone(data.sections, data.totalMinutes, data.changes)
+      }
+    }
+  },
+
+  saveFlow: (collectionId: number, data: { punchline: string; sections: FlowSection[]; total_minutes: number }) =>
+    fetchJSON<DrashaFlow>(`/flow/${collectionId}/save`, { method: 'POST', body: JSON.stringify(data) }),
+
+  loadFlow: (collectionId: number) =>
+    fetchJSON<DrashaFlow>(`/flow/${collectionId}`),
 }
