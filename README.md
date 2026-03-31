@@ -51,10 +51,25 @@
 
 ![Selection Active](docs/screenshots/02-selection-active.png)
 
-### הגדרות מפרשים
-60+ מפרשים ב-5 קטגוריות — פשט, חסידות, מוסר, מדרש, ביקורת המקרא:
+### רטוריקה ואסטרטגיות
+בחירת אסטרטגיות רטוריות ויצירת פאנצ'ליין:
 
-![Settings](docs/screenshots/03-settings.png)
+![Rhetoric Strategies](docs/screenshots/03-rhetoric-strategies.png)
+
+### בונה מהלך — Flow Builder
+מהלך הדרשה עם 5 שלבים, פס זמן צבעוני, ומעברים:
+
+![Flow Builder](docs/screenshots/04-flow-builder.png)
+
+### שלב מורחב — עריכה חופשית
+כל שלב ניתן לעריכה: כותרת, תיאור, מהלך רטורי, מפרשים, מעבר, זמן:
+
+![Section Expanded](docs/screenshots/05-flow-section-expanded.png)
+
+### ארון מפרשים
+חיפוש מפרשים לפי קטגוריות ושיוך לשלבים:
+
+![Mefarshim Panel](docs/screenshots/06-mefarshim-panel.png)
 
 ## ארכיטקטורה
 
