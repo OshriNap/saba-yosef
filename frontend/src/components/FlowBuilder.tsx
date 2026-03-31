@@ -512,13 +512,30 @@ export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowB
                         </div>
                       )}
                       {/* Search mefarshim for this section */}
-                      <button
-                        onClick={() => handleSearchMefarshimForSection(index)}
-                        disabled={searchingMefarshim === index}
-                        className="text-violet-600 hover:text-violet-800 text-sm disabled:opacity-50"
-                      >
-                        {searchingMefarshim === index ? '🔍 מחפש מפרשים...' : '🔍 חפש מפרשים לשלב זה'}
-                      </button>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {MEFARSHIM_CATEGORIES.map(cat => (
+                          <button
+                            key={cat.value}
+                            onClick={() => setMefarshimCategories(prev =>
+                              prev.includes(cat.value) ? prev.filter(c => c !== cat.value) : [...prev, cat.value]
+                            )}
+                            className={`px-2 py-0.5 rounded-full text-xs border transition ${
+                              mefarshimCategories.includes(cat.value)
+                                ? 'bg-violet-600 text-white border-violet-600'
+                                : 'bg-white text-gray-500 border-gray-300'
+                            }`}
+                          >
+                            {cat.label}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => handleSearchMefarshimForSection(index)}
+                          disabled={searchingMefarshim === index || mefarshimCategories.length === 0}
+                          className="text-violet-600 hover:text-violet-800 text-sm disabled:opacity-50"
+                        >
+                          {searchingMefarshim === index ? '🔍 מחפש...' : '🔍 חפש מפרשים'}
+                        </button>
+                      </div>
                       {index < sections.length - 1 && (
                         <div className="border-t border-dashed border-gray-200 pt-2">
                           <span className="text-xs text-gray-500">מעבר לשלב הבא:</span>

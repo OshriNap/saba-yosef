@@ -19,13 +19,12 @@ async def run_weekly_prep():
     nc = NewsCollector()
 
     try:
-        # Get user preferences
-        with Session(engine) as session:
-            profile = session.exec(select(UserProfile)).first()
-            if profile:
-                mefarshim_list = profile.selected_mefarshim
-            else:
-                mefarshim_list = MEFARSHIM_MAP["pshat"]
+        # Collect all mefarshim categories so they're available for any search
+        mefarshim_list = []
+        for cat_names in MEFARSHIM_MAP.values():
+            for name in cat_names:
+                if name not in mefarshim_list:
+                    mefarshim_list.append(name)
 
         # Collect parasha info
         parasha = await pc.get_weekly_parasha()
