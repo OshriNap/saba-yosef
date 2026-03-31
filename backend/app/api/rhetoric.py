@@ -143,7 +143,10 @@ async def stream_punchlines(
         while not task.done():
             yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
             await asyncio.sleep(3)
-        punchlines = task.result()
+        try:
+            punchlines = task.result()
+        except Exception as e:
+            punchlines = [f"שגיאה: {str(e)[:200]}"]
         yield f"data: {json.dumps({'type': 'done', 'punchlines': punchlines}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")

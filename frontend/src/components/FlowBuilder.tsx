@@ -1,7 +1,57 @@
 import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
-import type { WeeklyCollection, FlowSection, RhetoricalMove } from '../lib/types'
+import type { WeeklyCollection, FlowSection, RhetoricalMove, MefarshimResult, MefarshimCategory } from '../lib/types'
 import type { UserSelection } from '../App'
+
+let _idCounter = 0
+function uid(): string {
+  return `fs-${Date.now()}-${++_idCounter}`
+}
+
+const FLOW_STORAGE_KEY = 'dvar-tora-flow'
+
+interface FlowCache {
+  sections: FlowSection[]
+  totalMinutes: number
+  mefarshim: MefarshimResult[]
+  sectionMefarshim: Record<string, string[]>  // sectionId -> mefaresh keys
+  punchline: string
+}
+
+function loadFlowState(collectionId: number, punchline: string): FlowCache | null {
+  try {
+    const raw = localStorage.getItem(FLOW_STORAGE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (data.collectionId !== collectionId) return null
+    // If punchline changed, the old flow is stale
+    if (data.punchline && data.punchline !== punchline) return null
+    return {
+      sections: data.sections || [],
+      totalMinutes: data.totalMinutes || 0,
+      mefarshim: data.mefarshim || [],
+      sectionMefarshim: data.sectionMefarshim || {},
+      punchline: data.punchline || '',
+    }
+  } catch { return null }
+}
+
+function saveFlowState(collectionId: number, punchline: string, sections: FlowSection[], totalMinutes: number, mefarshim: MefarshimResult[], sectionMefarshim: Record<string, string[]>) {
+  try {
+    localStorage.setItem(FLOW_STORAGE_KEY, JSON.stringify({ collectionId, punchline, sections, totalMinutes, mefarshim, sectionMefarshim }))
+  } catch {}
+}
+
+const MEFARSHIM_CATEGORIES: { value: MefarshimCategory; label: string }[] = [
+  { value: 'pshat', label: 'פשט' },
+  { value: 'hasidic', label: 'חסידות' },
+  { value: 'mussar', label: 'מוסר' },
+  { value: 'midrash', label: 'מדרש' },
+]
+
+function mKey(m: MefarshimResult): string {
+  return `${m.mefaresh}::${m.ref}`
+}
 
 const MOVE_COLORS: Record<RhetoricalMove, { bg: string; text: string; border: string }> = {
   hook:     { bg: 'bg-amber-50',   text: 'text-amber-800',  border: 'border-amber-400' },
@@ -17,16 +67,22 @@ const MOVE_LABELS: Record<RhetoricalMove, string> = {
   deepen: 'deepen', resolve: 'resolve', land: 'land',
 }
 
+export interface FlowMefarshimMap {
+  [sectionId: string]: { mefaresh: string; ref: string; summary: string }[]
+}
+
 interface FlowBuilderProps {
   collection: WeeklyCollection
   selection: UserSelection
-  onComplete: (sections: FlowSection[]) => void
+  onComplete: (sections: FlowSection[], mefarshimMap: FlowMefarshimMap) => void
   onBack: () => void
 }
 
 export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowBuilderProps) {
-  const [sections, setSections] = useState<FlowSection[]>([])
-  const [totalMinutes, setTotalMinutes] = useState(0)
+  const punchline = selection.punchline || ''
+  const cached = loadFlowState(collection.id, punchline)
+  const [sections, setSections] = useState<FlowSection[]>(cached?.sections || [])
+  const [totalMinutes, setTotalMinutes] = useState(cached?.totalMinutes || 0)
   const [loading, setLoading] = useState(false)
   const [refiningIndex, setRefiningIndex] = useState<number | null>(null)
   const [refiningGlobal, setRefiningGlobal] = useState(false)
@@ -34,8 +90,25 @@ export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowB
   const [changes, setChanges] = useState('')
   const [refineInstruction, setRefineInstruction] = useState('')
   const [sectionInstruction, setSectionInstruction] = useState('')
+  // Mefarshim state
+  const [allMefarshim, setAllMefarshim] = useState<MefarshimResult[]>(cached?.mefarshim || [])
+  const [sectionMefarshim, setSectionMefarshim] = useState<Record<string, string[]>>(cached?.sectionMefarshim || {})
+  const [searchingMefarshim, setSearchingMefarshim] = useState<number | null>(null)  // section index
+  const [searchingGlobal, setSearchingGlobal] = useState(false)
+  const [mefarshimCategories, setMefarshimCategories] = useState<MefarshimCategory[]>(['pshat'])
+  const [showMefarshimPanel, setShowMefarshimPanel] = useState(false)
+  const [expandedMefaresh, setExpandedMefaresh] = useState<string | null>(null)
 
+  // Persist flow to localStorage on every change
   useEffect(() => {
+    if (sections.length > 0) {
+      saveFlowState(collection.id, punchline, sections, totalMinutes, allMefarshim, sectionMefarshim)
+    }
+  }, [sections, totalMinutes, collection.id, allMefarshim, sectionMefarshim])
+
+  // Try loading from DB if nothing in localStorage
+  useEffect(() => {
+    if (sections.length > 0) return
     api.loadFlow(collection.id).then(flow => {
       if (flow.sections?.length) {
         setSections(flow.sections)
@@ -61,7 +134,7 @@ export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowB
         custom_themes: selection.customThemes,
       },
       (newSections, total) => {
-        const withIds = newSections.map((s, i) => ({ ...s, id: s.id || crypto.randomUUID() }))
+        const withIds = newSections.map((s, i) => ({ ...s, id: s.id || uid() }))
         setSections(withIds)
         setTotalMinutes(total)
         setExpandedIndex(0)
@@ -112,7 +185,7 @@ export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowB
       (newSections, total, changeNote) => {
         const withIds = newSections.map((s, i) => ({
           ...s,
-          id: s.id || sections[i]?.id || crypto.randomUUID(),
+          id: s.id || sections[i]?.id || uid(),
         }))
         setSections(withIds)
         setTotalMinutes(total)
@@ -130,6 +203,77 @@ export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowB
       sections,
       total_minutes: totalMinutes,
     })
+  }
+
+  // Search mefarshim for a specific section
+  const handleSearchMefarshimForSection = async (sectionIndex: number) => {
+    setSearchingMefarshim(sectionIndex)
+    const section = sections[sectionIndex]
+    await api.streamMefarshimResearch(
+      collection.id,
+      {
+        selected_news: section.assignedNews,
+        selected_themes: section.assignedThemes,
+        custom_news: [],
+        custom_themes: [section.mefareshSlot || section.title],
+        categories: mefarshimCategories,
+      },
+      (result) => {
+        setAllMefarshim(prev => {
+          const key = mKey(result)
+          if (prev.some(m => mKey(m) === key)) return prev
+          return [...prev, result]
+        })
+        // Auto-assign to the section that triggered the search
+        const key = mKey(result)
+        setSectionMefarshim(prev => {
+          const current = prev[section.id] || []
+          if (current.includes(key)) return prev
+          return { ...prev, [section.id]: [...current, key] }
+        })
+      },
+      () => {},
+      () => { setSearchingMefarshim(null) },
+    )
+  }
+
+  // Global mefarshim search across all selected material
+  const handleSearchMefarshimGlobal = async () => {
+    setSearchingGlobal(true)
+    await api.streamMefarshimResearch(
+      collection.id,
+      {
+        selected_news: selection.selectedNews,
+        selected_themes: selection.selectedThemes,
+        custom_news: selection.customNews,
+        custom_themes: selection.customThemes,
+        categories: mefarshimCategories,
+      },
+      (result) => {
+        setAllMefarshim(prev => {
+          const key = mKey(result)
+          if (prev.some(m => mKey(m) === key)) return prev
+          return [...prev, result]
+        })
+      },
+      () => {},
+      () => { setSearchingGlobal(false) },
+    )
+  }
+
+  const assignMefareshToSection = (sectionId: string, mefareshKey: string) => {
+    setSectionMefarshim(prev => {
+      const current = prev[sectionId] || []
+      if (current.includes(mefareshKey)) {
+        return { ...prev, [sectionId]: current.filter(k => k !== mefareshKey) }
+      }
+      return { ...prev, [sectionId]: [...current, mefareshKey] }
+    })
+  }
+
+  const getMefarshimForSection = (sectionId: string): MefarshimResult[] => {
+    const keys = sectionMefarshim[sectionId] || []
+    return keys.map(k => allMefarshim.find(m => mKey(m) === k)).filter(Boolean) as MefarshimResult[]
   }
 
   const moveSection = (index: number, direction: 'up' | 'down') => {
@@ -150,7 +294,7 @@ export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowB
 
   const addSection = () => {
     const newSection: FlowSection = {
-      id: crypto.randomUUID(),
+      id: uid(),
       title: 'שלב חדש',
       description: '',
       rhetoricalMove: 'build',
@@ -171,8 +315,6 @@ export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowB
       return copy
     })
   }
-
-  const punchline = selection.punchline || ''
 
   return (
     <div className="max-w-4xl mx-auto p-6" dir="rtl">
@@ -348,6 +490,35 @@ export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowB
                           placeholder="למשל: רש״י על פסוק X..."
                         />
                       </div>
+                      {/* Assigned mefarshim for this section */}
+                      {getMefarshimForSection(section.id).length > 0 && (
+                        <div className="space-y-2">
+                          <span className="text-xs text-gray-500">מפרשים משויכים:</span>
+                          {getMefarshimForSection(section.id).map(m => (
+                            <div key={mKey(m)} className="bg-violet-50 border border-violet-200 rounded-lg p-2 text-sm">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <span className="font-bold text-violet-800">{m.mefaresh}</span>
+                                  <span className="text-violet-500 text-xs mr-2">{m.ref}</span>
+                                </div>
+                                <button
+                                  onClick={() => assignMefareshToSection(section.id, mKey(m))}
+                                  className="text-violet-400 hover:text-red-500 text-xs"
+                                >✕</button>
+                              </div>
+                              <p className="text-gray-700 text-xs mt-1 leading-relaxed">{m.summary}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Search mefarshim for this section */}
+                      <button
+                        onClick={() => handleSearchMefarshimForSection(index)}
+                        disabled={searchingMefarshim === index}
+                        className="text-violet-600 hover:text-violet-800 text-sm disabled:opacity-50"
+                      >
+                        {searchingMefarshim === index ? '🔍 מחפש מפרשים...' : '🔍 חפש מפרשים לשלב זה'}
+                      </button>
                       {index < sections.length - 1 && (
                         <div className="border-t border-dashed border-gray-200 pt-2">
                           <span className="text-xs text-gray-500">מעבר לשלב הבא:</span>
@@ -405,16 +576,132 @@ export function FlowBuilder({ collection, selection, onComplete, onBack }: FlowB
         })}
       </div>
 
+      {/* Mefarshim Panel */}
+      {sections.length > 0 && (
+        <div className="mt-8 border-t pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => setShowMefarshimPanel(!showMefarshimPanel)}
+              className="text-lg font-bold flex items-center gap-2"
+            >
+              📚 ארון מפרשים ({allMefarshim.length})
+              <span className="text-gray-400 text-sm">{showMefarshimPanel ? '▲' : '▼'}</span>
+            </button>
+            <div className="flex gap-2 items-center">
+              {MEFARSHIM_CATEGORIES.map(cat => (
+                <button
+                  key={cat.value}
+                  onClick={() => setMefarshimCategories(prev =>
+                    prev.includes(cat.value) ? prev.filter(c => c !== cat.value) : [...prev, cat.value]
+                  )}
+                  className={`px-3 py-1 rounded-full text-xs border transition ${
+                    mefarshimCategories.includes(cat.value)
+                      ? 'bg-violet-600 text-white border-violet-600'
+                      : 'bg-white text-gray-600 border-gray-300'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+              <button
+                onClick={handleSearchMefarshimGlobal}
+                disabled={searchingGlobal || mefarshimCategories.length === 0}
+                className="bg-violet-600 text-white px-4 py-1 rounded-full text-xs hover:bg-violet-700 disabled:opacity-50"
+              >
+                {searchingGlobal ? 'מחפש...' : '🔍 חפש'}
+              </button>
+            </div>
+          </div>
+
+          {showMefarshimPanel && allMefarshim.length > 0 && (
+            <div className="grid gap-3 max-h-96 overflow-y-auto">
+              {allMefarshim.map(m => {
+                const key = mKey(m)
+                const assignedTo = Object.entries(sectionMefarshim)
+                  .filter(([, keys]) => keys.includes(key))
+                  .map(([sectionId]) => sections.find(s => s.id === sectionId))
+                  .filter(Boolean)
+
+                return (
+                  <div key={key} className="border rounded-lg p-3 bg-white">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <span className="font-bold text-violet-800">{m.mefaresh}</span>
+                        <span className="text-gray-400 text-xs mr-2">{m.ref}</span>
+                        {assignedTo.length > 0 && (
+                          <span className="text-xs text-green-600 mr-2">
+                            → {assignedTo.map(s => s!.title.slice(0, 20)).join(', ')}
+                          </span>
+                        )}
+                      </div>
+                      {/* Assign to section dropdown */}
+                      <select
+                        value=""
+                        onChange={e => {
+                          if (e.target.value) assignMefareshToSection(e.target.value, key)
+                          e.target.value = ''
+                        }}
+                        className="text-xs border rounded px-2 py-1 text-gray-500"
+                      >
+                        <option value="">שייך לשלב...</option>
+                        {sections.map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.title.slice(0, 30)}
+                            {(sectionMefarshim[s.id] || []).includes(key) ? ' ✓' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="text-gray-700 text-sm mt-1 leading-relaxed">{m.summary}</p>
+                    {m.original_text && (
+                      <div className="mt-1">
+                        <button
+                          onClick={() => setExpandedMefaresh(expandedMefaresh === key ? null : key)}
+                          className="text-xs text-violet-600 hover:underline"
+                        >
+                          {expandedMefaresh === key ? 'הסתר מקור' : 'הצג מקור'}
+                        </button>
+                        {expandedMefaresh === key && (
+                          <div className="mt-1 p-2 bg-amber-50 rounded text-xs leading-relaxed max-h-32 overflow-y-auto">
+                            {m.original_text}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {showMefarshimPanel && allMefarshim.length === 0 && !searchingGlobal && (
+            <p className="text-gray-400 text-sm text-center py-4">
+              עדיין אין מפרשים. חפש מפרשים לשלב ספציפי או חפש כאן.
+            </p>
+          )}
+        </div>
+      )}
+
       {sections.length > 0 && !loading && (
-        <div className="flex justify-between items-center mt-8 border-t pt-4">
+        <div className="flex justify-between items-center mt-6 border-t pt-4">
           <button onClick={handleGenerate} className="text-blue-600 hover:underline text-sm">
             נקה וצור מהלך חדש
           </button>
           <button
-            onClick={() => onComplete(sections)}
+            onClick={() => {
+              // Build mefarshim map: sectionId -> mefarshim details
+              const mefarshimMap: FlowMefarshimMap = {}
+              for (const [sectionId, keys] of Object.entries(sectionMefarshim)) {
+                mefarshimMap[sectionId] = keys
+                  .map(k => allMefarshim.find(m => mKey(m) === k))
+                  .filter(Boolean)
+                  .map(m => ({ mefaresh: m!.mefaresh, ref: m!.ref, summary: m!.summary }))
+              }
+              onComplete(sections, mefarshimMap)
+            }}
             className="bg-green-600 text-white px-8 py-3 rounded-lg text-lg hover:bg-green-700 transition"
           >
-            המשך עם המהלך הזה
+            צור דרשה מהמהלך
           </button>
         </div>
       )}

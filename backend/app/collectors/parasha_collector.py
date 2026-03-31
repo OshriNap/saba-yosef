@@ -59,6 +59,7 @@ class ParashaCollector:
         }
         data = await self._fetch_hebcal(params)
         parasha = None
+        holiday_fallback = None
         jewish_events = []
         for item in data.get("items", []):
             if item.get("category") == "parashat" and not parasha:
@@ -75,8 +76,20 @@ class ParashaCollector:
                     "category": item.get("category", ""),
                     "date": item.get("date", ""),
                 })
+                # Use a holiday with Torah reading as fallback when no regular parasha
+                if not holiday_fallback and item.get("leyning", {}).get("torah"):
+                    holiday_fallback = {
+                        "name": item.get("hebrew", item["title"]),
+                        "name_en": item["title"],
+                        "ref": item["leyning"]["torah"].split(";")[0].strip(),
+                        "date": item.get("date", ""),
+                        "hebrew_date": item.get("hdate", ""),
+                    }
         if not parasha:
-            raise ValueError("No parasha found for this week")
+            if holiday_fallback:
+                parasha = holiday_fallback
+            else:
+                raise ValueError("No parasha found for this week")
         parasha["jewish_events"] = jewish_events
         return parasha
 

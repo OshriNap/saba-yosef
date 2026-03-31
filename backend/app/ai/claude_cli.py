@@ -16,6 +16,7 @@ from app.ai.prompts import (
     FLOW_GENERATE_PROMPT,
     FLOW_REFINE_SECTION_PROMPT,
     FLOW_REFINE_GLOBAL_PROMPT,
+    GENERATE_FROM_FLOW_PROMPT,
 )
 
 
@@ -658,3 +659,56 @@ class ClaudeCLI:
             return self._parse_json(raw)
         except (ValueError, json.JSONDecodeError):
             return {"sections": flow_sections, "changes": ""}
+
+    async def stream_generate_from_flow(
+        self,
+        parasha_name: str,
+        parasha_text: str,
+        punchline: str,
+        flow_sections: list[dict],
+        mefarshim_by_section: dict[str, list[dict]],
+        style: dict | None = None,
+    ) -> AsyncGenerator[str, None]:
+        """Stream a full drasha text based on a defined flow."""
+        flow_text = ""
+        for i, s in enumerate(flow_sections):
+            flow_text += f"\n### שלב {i+1}: {s.get('title', '')} [{s.get('rhetoricalMove', '')}] (~{s.get('estimatedMinutes', 2)} דק')\n"
+            flow_text += f"{s.get('description', '')}\n"
+            if s.get('mefareshSlot'):
+                flow_text += f"רמז למפרש: {s['mefareshSlot']}\n"
+            if s.get('transitionTo'):
+                flow_text += f"מעבר: {s['transitionTo']}\n"
+
+        mefarshim_text = ""
+        for section_id, mefarshim_list in mefarshim_by_section.items():
+            section = next((s for s in flow_sections if s.get('id') == section_id), None)
+            section_title = section.get('title', section_id) if section else section_id
+            for m in mefarshim_list:
+                mefarshim_text += f"\n**{m.get('mefaresh', '')}** ({m.get('ref', '')}) — משויך ל: {section_title}\n"
+                mefarshim_text += f"תקציר: {m.get('summary', '')}\n"
+        if not mefarshim_text:
+            mefarshim_text = "לא שויכו מפרשים ספציפיים"
+
+        style_parts = []
+        if style:
+            if style.get("tone"):
+                style_parts.append(f"טון: {style['tone']}")
+            if style.get("audience"):
+                style_parts.append(f"קהל יעד: {style['audience']}")
+            if style.get("length"):
+                style_parts.append(f"אורך: {style['length']}")
+            if style.get("approach"):
+                style_parts.append(f"גישה: {style['approach']}")
+        style_section = "\n".join(style_parts) if style_parts else "לא הוגדרו העדפות סגנון"
+
+        prompt = GENERATE_FROM_FLOW_PROMPT.format(
+            parasha_name=parasha_name,
+            parasha_text=parasha_text[:3000],
+            punchline=punchline,
+            style_section=style_section,
+            flow_sections=flow_text,
+            mefarshim_section=mefarshim_text,
+        )
+
+        async for chunk in self._stream_claude(prompt):
+            yield chunk

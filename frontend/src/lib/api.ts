@@ -345,6 +345,42 @@ export const api = {
     }
   },
 
+  streamGenerateFromFlow: async (
+    collectionId: number,
+    request: {
+      punchline: string
+      sections: FlowSection[]
+      mefarshim_by_section: Record<string, { mefaresh: string; ref: string; summary: string }[]>
+      style?: { tone: string; audience: string; length: string; approach: string } | null
+    },
+    onChunk: (text: string) => void,
+    onDone: (dvar: DvarTora) => void,
+    onHeartbeat?: () => void,
+  ) => {
+    const resp = await fetch(`${BASE}/flow/${collectionId}/generate-drasha`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    })
+    const reader = resp.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const data = JSON.parse(line.slice(6))
+        if (data.type === 'heartbeat') onHeartbeat?.()
+        else if (data.type === 'chunk') onChunk(data.text)
+        else if (data.type === 'done') onDone(data.dvar_tora)
+      }
+    }
+  },
+
   saveFlow: (collectionId: number, data: { punchline: string; sections: FlowSection[]; total_minutes: number }) =>
     fetchJSON<DrashaFlow>(`/flow/${collectionId}/save`, { method: 'POST', body: JSON.stringify(data) }),
 

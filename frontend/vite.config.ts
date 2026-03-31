@@ -9,7 +9,7 @@ export default defineConfig({
     allowedHosts: ['code-agents-server.local'],
     proxy: {
       '/dvar-tora/api': {
-        target: 'http://localhost:8085',
+        target: 'http://localhost:8086',
         rewrite: (path) => path.replace(/^\/dvar-tora/, ''),
       },
     },
