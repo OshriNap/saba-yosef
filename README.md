@@ -12,16 +12,32 @@
 
 כל יום חמישי, הסוכן:
 1. **אוסף חדשות** מ-6 מקורות ישראליים (Ynet, Walla, Google News, מעריב, גלובס, ישראל היום)
-2. **מוריד את פרשת השבוע** מ-Hebcal + טקסט ומפרשים מ-Sefaria
-3. **מזהה מועדים יהודיים** קרובים (חגים, צומות, ראש חודש)
+2. **מוריד את פרשת השבוע** מ-Hebcal + טקסט ומפרשים מ-Sefaria (כל הקטגוריות: פשט, חסידות, מוסר, מדרש, ביקורת)
+3. **מזהה מועדים יהודיים** קרובים (חגים, צומות, ראש חודש) — כולל קריאות חג כשאין פרשה רגילה
 4. **מנתח קשרים** בין החדשות לנושאי הפרשה באמצעות Claude
 
-ואז המשתמש:
-1. רואה **מפת קשרים אינטראקטיבית** — חדשות בצד ימין, נושאי פרשה בצד שמאל, קווי חיבור ביניהם
-2. בוחר נושאים מעניינים משני הצדדים (או מוסיף נושאים חופשיים)
-3. מקבל **5 הצעות לדבר תורה** עם מקורות ממפרשים
-4. עורך את דבר התורה ב**עורך טקסט עשיר** עם צ'אט AI
-5. מייצר **דף מקורות PDF** להדפסה
+ואז המשתמש בוחר בין שני מסלולים:
+
+### מסלול מהיר — הצעות
+1. **מפת קשרים** — חדשות בצד ימין, נושאי פרשה בצד שמאל, קווי חיבור ביניהם
+2. **בחירת נושאים** מעניינים משני הצדדים (או הוספת נושאים חופשיים)
+3. **רטוריקה ופאנצ'ליין** — בחירת אסטרטגיות רטוריות + יצירת פאנצ'ליין
+4. **"דלג להצעות"** → קבלת 5 הצעות לדבר תורה → עריכה → PDF
+
+### מסלול מלא — בונה מהלך
+1. **מפת קשרים** — בחירת נושאים
+2. **רטוריקה ופאנצ'ליין** — אסטרטגיות + פאנצ'ליין
+3. **"בנה את המהלך"** → **Flow Builder** — הלב של הכלי:
+   - Claude מציע מהלך דרשה ראשוני (4-6 שלבים)
+   - כל שלב מוגדר עם: כותרת, תיאור, מהלך רטורי (hook/build/surprise/deepen/resolve/land), חומרים משויכים, מפרש, מעבר, הערכת זמן
+   - עריכה חופשית — גרור, הוסף, מחק, ערוך כל שדה
+   - **שכלול שלב** — Claude משפר שלב ספציפי
+   - **שכלול מהלך** — Claude בודק קוהרנטיות, קצב ומעברים
+   - **חיפוש מפרשים** — לכל שלב בנפרד או חיפוש גלובלי, עם בחירת קטגוריות (פשט, חסידות, מדרש, מוסר)
+   - **ארון מפרשים** — פאנל משותף עם כל המפרשים שנאספו, שיוך לשלבים
+   - שמירה ל-localStorage (שורד ריענון) ואופציונלית ל-DB
+4. **"צור דרשה מהמהלך"** → Claude כותב דרשה מלאה שעוקבת אחרי המהלך בדיוק, שלב-אחר-שלב
+5. **עורך טקסט** עם צ'אט AI → **דף מקורות PDF**
 
 ## צילומי מסך
 
@@ -46,11 +62,14 @@
 backend/          Python 3.12+ / FastAPI / SQLite
 ├── collectors/   RSS news + Hebcal + Sefaria API
 ├── ai/           Claude CLI wrapper + Hebrew prompts
+├── api/          REST + SSE streaming endpoints
 ├── pdf/          WeasyPrint → דף מקורות PDF
 └── cron/         Thursday auto-collection
 
 frontend/         React 18 / TypeScript / Vite / Tailwind
 ├── ConnectionDashboard   מפת קשרים SVG אינטראקטיבית
+├── RhetoricPunchline     אסטרטגיות רטוריות + פאנצ'ליין
+├── FlowBuilder           בונה מהלך דרשה אינטראקטיבי + מפרשים
 ├── SuggestionCards       הצעות עם streaming text
 ├── Editor/               Tiptap RTL + צ'אט AI
 └── PdfPreview            תצוגה מקדימה והורדה
@@ -134,8 +153,18 @@ python -m cron.weekly_prep
 | `/api/health` | GET | בדיקת תקינות |
 | `/api/parasha/current` | GET | פרשה נוכחית + חדשות + נושאים + קשרים |
 | `/api/settings/profile` | GET/PUT | העדפות מפרשים |
-| `/api/dvar-tora/suggestions/{id}/stream` | GET | SSE — יצירת הצעות עם streaming |
-| `/api/dvar-tora/expand/{id}/stream` | GET | SSE — כתיבת דבר תורה מלא עם streaming |
+| `/api/rhetoric/` | GET/POST | אסטרטגיות רטוריות CRUD |
+| `/api/rhetoric/{id}/punchlines` | POST | SSE — יצירת פאנצ'ליינים |
+| `/api/rhetoric/{id}/beats` | POST | SSE — יצירת ביטים |
+| `/api/flow/{id}/generate` | POST | SSE — יצירת מהלך דרשה |
+| `/api/flow/{id}/refine-section` | POST | SSE — שכלול שלב בודד |
+| `/api/flow/{id}/refine-flow` | POST | SSE — שכלול מהלך כולל |
+| `/api/flow/{id}/generate-drasha` | POST | SSE — כתיבת דרשה מלאה מהמהלך |
+| `/api/flow/{id}/save` | POST | שמירת מהלך |
+| `/api/flow/{id}` | GET | טעינת מהלך שמור |
+| `/api/mefarshim/{id}/research` | POST | SSE — חיפוש מפרשים רלוונטיים |
+| `/api/dvar-tora/suggestions/{id}/stream` | GET | SSE — יצירת הצעות (מסלול מהיר) |
+| `/api/dvar-tora/expand/{id}/stream` | GET | SSE — כתיבת דבר תורה מלא |
 | `/api/dvar-tora/{id}` | GET/PATCH | קריאה/עדכון דבר תורה |
 | `/api/dvar-tora/chat` | POST | עריכה באמצעות AI |
 | `/api/pdf/{id}` | GET | הורדת דף מקורות PDF |
@@ -157,7 +186,13 @@ dvar-tora/
 │   │   ├── main.py              # FastAPI entry point
 │   │   ├── models.py            # SQLModel models
 │   │   ├── database.py          # SQLite engine
-│   │   ├── api/                 # REST endpoints
+│   │   ├── api/                 # REST + SSE streaming endpoints
+│   │   │   ├── parasha.py       # פרשה נוכחית
+│   │   │   ├── rhetoric.py      # אסטרטגיות, פאנצ'ליין, ביטים
+│   │   │   ├── flow.py          # מהלך דרשה — generate, refine, save
+│   │   │   ├── mefarshim.py     # חיפוש מפרשים
+│   │   │   ├── dvar_tora.py     # הצעות, הרחבה, עריכה
+│   │   │   └── pdf.py           # דף מקורות
 │   │   ├── collectors/          # News + Parasha + Mefarshim
 │   │   ├── ai/                  # Claude CLI wrapper + prompts
 │   │   └── pdf/                 # PDF generator + templates
@@ -167,11 +202,15 @@ dvar-tora/
 ├── frontend/
 │   └── src/
 │       ├── components/
-│       │   ├── ConnectionDashboard.tsx  # Interactive connection map
-│       │   ├── SuggestionCards.tsx      # AI suggestions with streaming
-│       │   ├── Editor/                 # Tiptap editor + chat
-│       │   ├── Settings.tsx            # Mefarshim preferences
-│       │   └── PdfPreview.tsx          # PDF preview
+│       │   ├── ConnectionDashboard.tsx  # מפת קשרים אינטראקטיבית
+│       │   ├── RhetoricPunchline.tsx    # אסטרטגיות + פאנצ'ליין + מזלג
+│       │   ├── FlowBuilder.tsx         # בונה מהלך + מפרשים משולבים
+│       │   ├── StylePicker.tsx         # העדפות סגנון
+│       │   ├── MefarshimResearch.tsx   # חיפוש מפרשים (מסלול מהיר)
+│       │   ├── SuggestionCards.tsx     # הצעות AI (מסלול מהיר)
+│       │   ├── Editor/                 # Tiptap עורך + צ'אט AI
+│       │   ├── Settings.tsx            # הגדרות
+│       │   └── PdfPreview.tsx          # תצוגת PDF
 │       └── lib/
 │           ├── api.ts                  # API client with SSE
 │           └── types.ts                # Shared types
